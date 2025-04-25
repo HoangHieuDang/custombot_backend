@@ -1,28 +1,32 @@
 from abc import ABC, abstractmethod
-#CRUD Create Read Updater Delete
+
+
+# CRUD Create Read Updater Delete
 
 class DatabaseInterface(ABC):
 
     # Create Data
     @abstractmethod
-    def add_user(self, user_infos):
+    def add_user(self, users_list):
         pass
-
-    def add_custom_bot_to_user(self, user_id, bot_id):
+    @abstractmethod
+    def add_part(self, parts_list):
         pass
-
-    def add_part(self, part_infos):
+    @abstractmethod
+    def create_custom_bot_for_user(self, user_id, bots_list):
         pass
-
+'''
+    @abstractmethod
     def add_part_to_custom_bot(self, part_id, bot_id):
         pass
 
+    @abstractmethod
     def add_order(self, user_id, bot_id, order_infos):
         pass
 
     # Read Data
     @abstractmethod
-    def get_user(self,**criteria):
+    def get_user(self, **criteria):
         pass
 
     @abstractmethod
@@ -41,7 +45,6 @@ class DatabaseInterface(ABC):
     def get_part_from_custom_bot(self, bot_id):
         pass
 
-
     # Update Data
     @abstractmethod
     def update_user(self, user_id, updated_infos):
@@ -54,8 +57,6 @@ class DatabaseInterface(ABC):
     @abstractmethod
     def update_bot_part(self, part_id, updated_infos):
         pass
-
-
 
     # Delete Data
     @abstractmethod
@@ -73,4 +74,4 @@ class DatabaseInterface(ABC):
     @abstractmethod
     def delete_order(self, order_id):
         pass
-
+'''

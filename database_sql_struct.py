@@ -3,8 +3,6 @@ from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
 from sqlalchemy import Integer, String, DateTime, Float
 from sqlalchemy import create_engine
 
-engine = create_engine("sqlite:///custom_bot_db", echo=True)
-
 
 class Base(DeclarativeBase):
     pass
@@ -13,8 +11,8 @@ class Base(DeclarativeBase):
 class Users(Base):
     __tablename__ = "users"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True, unique=True)
-    username: Mapped[str] = mapped_column(String(50), nullable=False)
-    email: Mapped[str] = mapped_column(String(100))
+    username: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
+    email: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
     password: Mapped[str] = mapped_column(String(100), nullable=False)
     created_at: Mapped[DateTime] = mapped_column(DateTime)
 
@@ -22,10 +20,10 @@ class Users(Base):
 class RobotParts(Base):
     __tablename__ = "robot_parts"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True, unique=True)
-    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
     type: Mapped[str] = mapped_column(String(50),
                                       nullable=False)  # arm, shoulder arm, chest, skirt, upper_leg, leg, foot, backpack
-    stl_path: Mapped[str] = mapped_column()
+    model_path: Mapped[str] = mapped_column()
     img_path: Mapped[str] = mapped_column()
     price: Mapped[float] = mapped_column()
 
@@ -59,4 +57,9 @@ class Order(Base):
     shipping_date: Mapped[DateTime] = mapped_column(DateTime)
     created_at: Mapped[DateTime] = mapped_column(DateTime)
 
-#Base.metadata.create_all(engine)
+
+'''
+#Run these lines of code 1 time to generate sqlite database
+engine = create_engine("sqlite:///custom_bot_db", echo=True)
+Base.metadata.create_all(engine)
+'''
