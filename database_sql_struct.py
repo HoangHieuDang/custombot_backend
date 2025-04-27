@@ -54,7 +54,7 @@ class Order(Base):
     status: Mapped[str] = mapped_column(String(20), default="pending")  # e.g. pending, paid, shipped, canceled
     payment_method: Mapped[str] = mapped_column(String(50), nullable=True)  # e.g. credit_card, paypal, etc.
     shipping_address: Mapped[str] = mapped_column(String, nullable=True)
-    shipping_date: Mapped[DateTime] = mapped_column(DateTime)
+    shipping_date: Mapped[DateTime] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[DateTime] = mapped_column(DateTime)
 
 

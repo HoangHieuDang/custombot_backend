@@ -5,6 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ab9d9f96-c04f-4ec8-a42d-88ae4f931fde" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/crud_create.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/crud_delete.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/crud_read.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/crud_update.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/custom_bot_db" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/database_handling.py" beforeDir="false" afterPath="$PROJECT_DIR$/database_handling.py" afterDir="false" />
@@ -28,14 +32,14 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python.database_handling.executor": "Run",
-    "Python.database_sql_struct.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "main"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.database_handling.executor&quot;: &quot;Run&quot;,
+    &quot;Python.database_sql_struct.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;
   }
-}]]></component>
+}</component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>

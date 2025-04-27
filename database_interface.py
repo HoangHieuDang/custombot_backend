@@ -13,17 +13,16 @@ class DatabaseInterface(ABC):
     def add_part(self, parts_list):
         pass
     @abstractmethod
-    def create_custom_bot_for_user(self, user_id, bots_list):
+    def create_custom_bot_for_user(self, bots_list):
         pass
-'''
     @abstractmethod
-    def add_part_to_custom_bot(self, part_id, bot_id):
+    def add_part_to_custom_bot(self, part_id, custom_robot_id):
+        pass
+    @abstractmethod
+    def add_order(self, orders_list):
         pass
 
-    @abstractmethod
-    def add_order(self, user_id, bot_id, order_infos):
-        pass
-
+    ''' 
     # Read Data
     @abstractmethod
     def get_user(self, **criteria):
