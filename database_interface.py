@@ -22,15 +22,18 @@ class DatabaseInterface(ABC):
     def add_order(self, orders_list):
         pass
 
-    ''' 
+
     # Read Data
     @abstractmethod
     def get_user(self, **criteria):
         pass
 
+
+
     @abstractmethod
     def get_custom_bot(self, **criteria):
         pass
+
 
     @abstractmethod
     def get_part(self, **criteria):
@@ -41,7 +44,7 @@ class DatabaseInterface(ABC):
         pass
 
     @abstractmethod
-    def get_part_from_custom_bot(self, bot_id):
+    def get_parts_from_custom_bot(self, bot_id):
         pass
 
     # Update Data
@@ -57,6 +60,7 @@ class DatabaseInterface(ABC):
     def update_bot_part(self, part_id, updated_infos):
         pass
 
+    ''' 
     # Delete Data
     @abstractmethod
     def delete_user(self, user_id):
