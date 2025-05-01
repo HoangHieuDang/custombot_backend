@@ -1,8 +1,7 @@
 '''Handling database related tasks by defining methods from class DatabaseInterface'''
-
 from database_interface import DatabaseInterface
 from sqlalchemy.orm import Session
-from sqlalchemy import select, literal
+from sqlalchemy import select, func, and_, delete
 from sqlalchemy import create_engine, URL
 from datetime import datetime
 from database_sql_struct import Users, RobotParts, CustomBots, CustomBotParts, Order
@@ -163,8 +162,6 @@ class SQLiteDataManager(DatabaseInterface):
                         name=bot["name"],
                         status="in_progress",  # Default to 'in_progress'
                         created_at=datetime.now(),
-                        total_price=0
-                        # Total_price is initially 0, when parts are added, the total_price will be recalculated and updated
                     )
                     new_bots_list.append(new_bot)
                 except Exception as e:
@@ -186,53 +183,69 @@ class SQLiteDataManager(DatabaseInterface):
                 print("No valid bots to add.")
                 return False
 
-    def add_part_to_custom_bot(self, part_id, custom_robot_id):
+    def add_part_to_custom_bot(self, part_id, custom_robot_id, amount):
         """
-        Adds a robot part to a custom bot by inserting a new entry
-        into the CustomBotParts association table and updates the custom bot's total price.
+        Adds a robot part to a custom bot by inserting or updating an entry
+        in the CustomBotParts association table.
+
+        Only allows modification if the custom bot is still in 'in_progress' status.
 
         Args:
             part_id (int): The ID of the robot part to be added.
             custom_robot_id (int): The ID of the custom bot to which the part will be added.
+            amount (int): The quantity of the part to add (must be >= 1).
 
         Returns:
-            bool:
-                - True if the part was successfully added and total price updated.
-                - False if either the part_id or custom_bot_id does not exist in the database.
-
-        Notes:
-            - Assumes that part_id and bot_id must already exist in their respective tables.
-            - Commits the transaction immediately after adding the entry and updating the price.
+            bool: True if successful, False otherwise.
         """
         with Session(self._engine) as session:
-            # Check if part_id exists
+            # Validate amount
+            if not isinstance(amount, int) or amount < 1:
+                print("Amount must be a positive integer >= 1.")
+                return False
+
+            # Validate part
             part = session.scalar(select(RobotParts).where(RobotParts.id == part_id))
             if not part:
-                print(f"No part found for part_id {part_id}")
+                print(f"No part found with part_id {part_id}.")
                 return False
 
-            # Check if bot_id exists
+            # Validate custom bot
             bot = session.scalar(select(CustomBots).where(CustomBots.id == custom_robot_id))
             if not bot:
-                print(f"No bot found for bot_id {custom_robot_id}")
+                print(f"No custom bot found with id {custom_robot_id}.")
                 return False
 
-            # Add part_id and bot_id into CustomBotParts table and update total_price
-            try:
-                session.add(CustomBotParts(
-                    robot_part_id=part_id,
-                    custom_robot_id=custom_robot_id
-                ))
+            if bot.status == "ordered":
+                print(f"Cannot modify bot '{bot.name}' (ID {custom_robot_id}) because it has already been ordered.")
+                return False
 
-                # Update the custom bot's total_price
-                if bot.total_price is None:
-                    bot.total_price = 0
-                bot.total_price += part.price
+            try:
+                # Check if the part is already in the bot
+                existing_entry = session.scalar(
+                    select(CustomBotParts)
+                    .where(
+                        CustomBotParts.robot_part_id == part_id,
+                        CustomBotParts.custom_robot_id == custom_robot_id
+                    )
+                )
+
+                if existing_entry:
+                    # If already exists, update the amount
+                    existing_entry.robot_part_amount += amount
+                    print(f"Updated part amount for part_id {part_id} in bot_id {custom_robot_id}.")
+                else:
+                    # Otherwise, insert new part
+                    session.add(CustomBotParts(
+                        robot_part_id=part_id,
+                        custom_robot_id=custom_robot_id,
+                        robot_part_amount=amount
+                    ))
+                    print(f"Added part_id {part_id} to bot_id {custom_robot_id}.")
 
                 session.commit()
-                print(f"Part with part_id {part_id} was added to custom bot with bot_id {custom_robot_id}")
-                print(f"Updated total_price of custom bot (id={custom_robot_id}) to {bot.total_price}")
                 return True
+
             except Exception as e:
                 session.rollback()
                 print(f"Failed to add part to custom bot: {e}")
@@ -243,23 +256,6 @@ class SQLiteDataManager(DatabaseInterface):
         Adds a list of orders to the database, each order containing a user ID
         and a custom bot ID. Calculates total price based on bot's price and quantity.
         Also updates the custom bot status to "ordered" once the order is placed.
-
-        Args:
-            orders_list (list of dict): A list of dictionaries where each dictionary
-                                        contains the details of an order.
-                                        Each dictionary must have the following keys:
-                                        - 'user_id': The ID of the user placing the order.
-                                        - 'custom_robot_id': The ID of the custom bot being ordered.
-                                        - 'quantity' (optional): Number of bots ordered (default 1).
-        Returns:
-            bool:
-                - True if all valid orders were successfully added to the database.
-                - False if any errors occurred while adding an order.
-        Notes:
-            - For each order, checks if the user and custom bot exist in the database.
-            - Calculates the total_price automatically.
-            - Updates the custom bot status to "ordered".
-            - Continues processing the rest of the orders even if one fails.
         '''
         if not orders_list or not isinstance(orders_list, list):
             print("orders_list is empty or not a valid list!")
@@ -269,54 +265,68 @@ class SQLiteDataManager(DatabaseInterface):
             for order in orders_list:
                 try:
                     # Validate user
-                    user_query = select(Users).where(Users.id == order["user_id"])
-                    user = session.scalar(user_query)
+                    user = session.scalar(select(Users).where(Users.id == order["user_id"]))
                     if not user:
-                        print(f"User with user_id {order['user_id']} doesn't exist in User database!")
+                        print(f"User with user_id {order['user_id']} doesn't exist!")
                         continue
 
                     # Validate custom bot
-                    bot_query = select(CustomBots).where(CustomBots.id == order["custom_robot_id"])
-                    bot = session.scalar(bot_query)
+                    bot = session.scalar(select(CustomBots).where(CustomBots.id == order["custom_robot_id"]))
                     if not bot:
-                        print(
-                            f"Custom bot with custom_robot_id {order['custom_robot_id']} doesn't exist in Custom Bot database!")
+                        print(f"Custom bot with id {order['custom_robot_id']} doesn't exist!")
                         continue
 
-                    # Get quantity (default to 1 if not provided)
+                    # Check that the bot has at least one part
+                    part_exists = session.scalar(
+                        select(func.count()).select_from(CustomBotParts)
+                        .where(CustomBotParts.custom_robot_id == order["custom_robot_id"])
+                    )
+                    if not part_exists:
+                        print(f"Custom bot with id {order['custom_robot_id']} has no parts!")
+                        continue
+
+                    # Get quantity
                     quantity = order.get('quantity', 1)
                     if not isinstance(quantity, int) or quantity <= 0:
-                        print(f"Invalid quantity provided for order: {order}. Skipping.")
+                        print(f"Invalid quantity for order: {order}")
                         continue
 
-                    # Calculate total price
-                    total_price = bot.total_price * quantity
+                    # Calculate price of one bot
+                    bot_price = session.scalar(
+                        select(func.sum(RobotParts.price * CustomBotParts.robot_part_amount))
+                        .select_from(CustomBotParts)
+                        .join(RobotParts, RobotParts.id == CustomBotParts.robot_part_id)
+                        .where(CustomBotParts.custom_robot_id == order["custom_robot_id"])
+                    )
 
-                    # Create the Order
+                    if bot_price is None:
+                        print(f"[Warning] Price calculation failed for bot id={order['custom_robot_id']}.")
+                        continue
+
+                    total_price = quantity * bot_price
+
+                    # Create order
                     new_order = Order(
                         user_id=order['user_id'],
                         custom_robot_id=order['custom_robot_id'],
                         quantity=quantity,
                         total_price=total_price,
-                        status=order.get('status', 'pending'),  # Default status to 'pending'
-                        payment_method=order.get('payment_method', None),
-                        shipping_address=order.get('shipping_address', None),
-                        shipping_date=order.get('shipping_date', None),
+                        status=order.get('status', 'pending'),
+                        payment_method=order.get('payment_method'),
+                        shipping_address=order.get('shipping_address'),
+                        shipping_date=order.get('shipping_date'),
                         created_at=datetime.now()
                     )
 
                     session.add(new_order)
-
-                    # Update the CustomBot status to "ordered"
                     bot.status = "ordered"
-
                     session.commit()
-                    print(f"Order added successfully! Bot ID {bot.id} status updated to 'ordered'.")
+                    print(f"[Success] Order added. Bot ID {bot.id} marked as 'ordered'.")
 
                 except Exception as e:
-                    print(f"Cannot add order due to error: {e}")
+                    print(f"[Error] Failed to add order: {e}")
                     session.rollback()
-                    continue  # Try the next order even if one fails
+                    continue
 
         return True
 
@@ -396,7 +406,6 @@ class SQLiteDataManager(DatabaseInterface):
 
             try:
                 # Execute the query with combined filter conditions
-                print(f"combined_filter: {combined_filter}")
                 query = select(Users).where(combined_filter)
                 # get all query results
                 result = session.scalars(query).all()
@@ -404,6 +413,7 @@ class SQLiteDataManager(DatabaseInterface):
                     return [{
                         "id": row.id,
                         "username": row.username,
+                        "email": row.email,
                         "created_at": row.created_at
                     } for row in result]
                 else:
@@ -426,7 +436,7 @@ class SQLiteDataManager(DatabaseInterface):
                                 - 'name': The name of the custom bot.
                                 - 'status': The status of the custom bot (e.g., 'in_progress', 'ordered').
                                 - 'created_at': The creation date of the custom bot.
-                                - 'total_price': The total price of the custom bot.
+
 
         Returns:
             list of dict or bool:
@@ -454,7 +464,7 @@ class SQLiteDataManager(DatabaseInterface):
             - Multiple search criteria are combined with AND logic.
             - If no matching bots are found or an error occurs, a helpful message is printed.
         """
-        possible_filters = {"id", "user_id", "name", "status", "created_at", "total_price"}
+        possible_filters = {"id", "user_id", "name", "status", "created_at"}
 
         if not criteria:
             print("No search criteria provided!")
@@ -493,7 +503,6 @@ class SQLiteDataManager(DatabaseInterface):
                         "user_id": row.user_id,
                         "name": row.name,
                         "status": row.status,
-                        "total_price": row.total_price,
                         "created_at": row.created_at
                     } for row in result]
                 else:
@@ -638,7 +647,7 @@ class SQLiteDataManager(DatabaseInterface):
 
         Notes:
             - Only valid filters are allowed.
-            - Multiple search criteria are combined with AND logic.
+            - Multiple search criteria combined with AND logic.
             - If no matching orders are found or an error occurs, a helpful message is printed.
         """
         possible_filters = {
@@ -715,6 +724,7 @@ class SQLiteDataManager(DatabaseInterface):
                     - 'part_name': The name of the robot part.
                     - 'part_type': The type of the robot part (e.g., 'arm', 'leg', etc.).
                     - 'part_price': The price of the robot part.
+                    - 'part_amount': The amount of each part
                     - 'part_model_path': The file path to the model of the part.
                     - 'part_img_path': The file path to the image of the part.
                 - If no robot parts are found, `False` is returned.
@@ -748,6 +758,7 @@ class SQLiteDataManager(DatabaseInterface):
                         RobotParts.name.label("robot_part_name"),
                         RobotParts.type,
                         RobotParts.price,
+                        CustomBotParts.robot_part_amount,
                         RobotParts.model_path,
                         RobotParts.img_path
                     )
@@ -762,17 +773,16 @@ class SQLiteDataManager(DatabaseInterface):
                 # session.execute on the other returns all columns and rows as it should be
 
                 result = session.execute(query).all()
-                print(result)
                 if result:
-                    print("i am here")
                     return [{
                         "custom_robot_id": row.custom_robot_id,
-                        "user_id":row.user_id,
+                        "user_id": row.user_id,
                         "custom_bot_name": row.custom_bot_name,
                         "robot_part_id": row.robot_part_id,
                         "robot_part_name": row.robot_part_name,
                         "type": row.type,
                         "price": row.price,
+                        "amount": row.robot_part_amount,
                         "model_path": row.model_path,
                         "img_path": row.img_path
                     } for row in result]
@@ -787,16 +797,318 @@ class SQLiteDataManager(DatabaseInterface):
 
     # Update
 
-    def update_user(self, user_id, updated_infos):
-        pass
+    def update_user(self, user_id, **changes):
+        """
+            Updates user attributes in the database based on the provided changes.
 
-    def update_custom_bot(self, bot_id, updated_infos):
-        pass
+            Args:
+                user_id (int): The unique identifier of the user to update.
+                **changes (dict): A variable-length dictionary of key-value pairs representing
+                                  the attributes to update and their new values. Only the following
+                                  keys are allowed:
+                                    - 'email': The new email address.
+                                    - 'username': The new username.
 
-    def update_bot_part(self, part_id, updated_infos):
-        pass
+            Returns:
+                bool:
+                    - True if the update was successful.
+                    - False if an invalid attribute is provided or if an error occurs during the update.
+
+            Raises:
+                Exception: Any exceptions raised during the database transaction are caught and
+                           printed to help with debugging.
+
+            Example:
+                update_user(1, email="new@example.com", username="new_name")
+
+            Notes:
+                - The function uses SQLAlchemy ORM to query and update the user.
+                - Only the fields explicitly listed in `possible_changes` can be updated.
+                - The update is committed to the database only if all inputs are valid.
+            """
+        possible_changes = {"email", "username"}
+        with Session(self._engine) as session:
+            for key_change, value in changes.items():
+                # if key_change is valid
+                if key_change in possible_changes:
+                    try:
+                        user = session.execute(select(Users).filter_by(id=user_id)).scalar_one()
+                        setattr(user, key_change, value)
+                        session.commit()
+                    except Exception as e:
+                        print("Sth went wrong while updating db: " + str(e))
+                        return False
+                else:
+                    print("Invalid input attributes!")
+                    return False
+        return True
+
+    def update_custom_bot(self, bot_id, **changes):
+        """
+        Updates the non-critical attributes of a custom robot in the database.
+
+        Args:
+            bot_id (int): The unique identifier of the custom robot to update.
+            **changes (dict): Key-value pairs representing the fields to update.
+                              Only the 'name' field is allowed.
+
+        Returns:
+            bool:
+                - True if the update was successful.
+                - False if an invalid attribute is provided or if an error occurs.
+
+        Example:
+            update_custom_bot(5, name="Battle Titan")
+
+        Notes:
+            - Only the 'name' field is allowed to be updated.
+            - Status changes must be handled through the ordering process or other
+              domain-specific workflows to ensure consistency across tables.
+        """
+        possible_changes = {"name"}
+        with Session(self._engine) as session:
+            for key_change, value in changes.items():
+                if key_change in possible_changes:
+                    try:
+                        custom_bot = session.execute(select(CustomBots).filter_by(id=bot_id)).scalar_one()
+                        setattr(custom_bot, key_change, value)
+                        session.commit()
+                    except Exception as e:
+                        print("Sth went wrong while updating db: " + str(e))
+                        return False
+                else:
+                    print("Invalid input attributes!")
+                    return False
+        return True
+
+    def update_bot_part(self, part_id, **changes):
+        '''
+        Update one or more attributes of a robot part. If its price changes,
+        recalculate total_price for orders with 'pending' status that include the updated part.
+        '''
+        allowed_types = {"arm", "shoulder", "chest", "skirt", "leg", "foot", "backpack"}
+        possible_changes = {"name", "type", "model_path", "img_path", "price"}
+        with Session(self._engine) as session:
+            try:
+                part = session.scalar(select(RobotParts).where(RobotParts.id == part_id))
+                if not part:
+                    print(f"No RobotPart found with id={part_id}")
+                    return False
+                price_changed = False
+                original_price = part.price
+                new_price = original_price
+                for key, value in changes.items():
+                    if key not in possible_changes:
+                        print(f"Invalid attribute '{key}'—cannot update.")
+                        return False
+                    if key == "type" and value not in allowed_types:
+                        print(f"Invalid part type '{value}'. Must be one of {allowed_types}.")
+                        return False
+                    if key == "price":
+                        if not isinstance(value, (int, float)):
+                            print(f"Invalid price value: {value!r}")
+                            return False
+                        price_changed = True
+                        new_price = value
+                    setattr(part, key, value)
+                session.flush()  # Apply changes
+                if price_changed and original_price != new_price:
+                    try:
+                        # Get all bot IDs that use this part
+                        bot_ids = session.scalars(
+                            select(CustomBotParts.custom_robot_id)
+                            .where(CustomBotParts.robot_part_id == part_id)
+                        ).all()
+                        if not bot_ids:
+                            print("No custom bots have the part. No updates needed.")
+                        else:
+                            for bot_id in set(bot_ids):
+                                # Check if a pending order exists for this bot
+                                pending_order = session.scalar(
+                                    select(Order)
+                                    .where(and_(
+                                        Order.custom_robot_id == bot_id,
+                                        Order.status == "pending"
+                                    ))
+                                )
+                                if not pending_order:
+                                    print(f"Bot ID {bot_id} has no pending order or isn't in the order table yet.")
+                                    continue
+                                # Recalculate price
+                                bot_price = session.scalar(
+                                    select(func.sum(RobotParts.price * CustomBotParts.robot_part_amount))
+                                    .select_from(CustomBotParts)
+                                    .join(RobotParts, RobotParts.id == CustomBotParts.robot_part_id)
+                                    .where(CustomBotParts.custom_robot_id == bot_id)
+                                )
+                                if bot_price is None:
+                                    print(f"[Warning] Price calculation failed for bot ID {bot_id}.")
+                                    continue
+                                pending_order.total_price = pending_order.quantity * bot_price
+                        session.commit()
+                    except Exception as e:
+                        print("Error when updating affected custom bots:", e)
+                        session.rollback()
+                        # Revert the price
+                        with Session(self._engine) as revert_session:
+                            part_revert = revert_session.get(RobotParts, part_id)
+                            part_revert.price = original_price
+                            revert_session.commit()
+                            print("reverted the part's price back to original price.")
+                        return False
+
+                session.commit()
+                return True
+
+            except Exception as e:
+                session.rollback()
+                print(f"Error updating robot part {part_id}: {e}")
+                return False
+
+    def update_order(self, order_id, **changes):
+        """
+        Update attributes of an existing order.
+
+        Args:
+            order_id (int): ID of the order to update.
+            **changes: Key/value pairs of attributes to change. Allowed keys:
+                - 'quantity' (int > 0)
+                - 'status' (str: one of {"pending", "paid", "shipped", "cancelled"})
+                - 'shipping_address' (str)
+                - 'shipping_date' (str in 'YYYY-MM-DD' format or datetime.date)
+                - 'payment_method' (str)
+
+        Returns:
+            bool: True if update succeeded, False otherwise.
+        """
+        possible_status = {"pending", "paid", "shipped", "cancelled"}
+        possible_changes = {"quantity", "status", "shipping_address", "shipping_date", "payment_method"}
+
+        with Session(self._engine) as session:
+            try:
+                order = session.get(Order, order_id)
+                if not order:
+                    print(f"No order found with ID {order_id}")
+                    return False
+
+                for key, value in changes.items():
+                    if key not in possible_changes:
+                        print(f"Invalid field '{key}' — cannot update.")
+                        return False
+
+                    if key == "quantity":
+                        if not isinstance(value, int) or value <= 0:
+                            print("Quantity must be a positive integer.")
+                            return False
+
+                    if key == "status":
+                        if value not in possible_status:
+                            print(f"Invalid status '{value}'. Allowed: {possible_status}")
+                            return False
+
+                    if key == "shipping_date":
+                        from datetime import datetime, date
+                        if isinstance(value, str):
+                            # convert to datetime object
+                            try:
+                                value = datetime.strptime(value, "%Y-%m-%d").date()
+                            except ValueError:
+                                print("shipping_date must be in 'YYYY-MM-DD' format.")
+                                return False
+                        elif not isinstance(value, date):
+                            print("shipping_date must be a string or a date object.")
+                            return False
+
+                    setattr(order, key, value)
+
+                session.commit()
+                print(f"Order {order_id} updated successfully.")
+                return True
+
+            except Exception as e:
+                session.rollback()
+                print(f"Error updating order {order_id}: {e}")
+                return False
 
     # Delete
+
+    def delete_user(self, user_id):
+        """
+        Delete a user and their related data, while preserving legal Order records.
+
+        Orders with status 'paid', 'shipped', or 'cancelled' will be retained,
+        and their user_id will be set to None for anonymization.
+
+        Args:
+            user_id (int): ID of the user to delete.
+
+        Returns:
+            bool: True if user deleted successfully, False otherwise.
+        """
+        with Session(self._engine) as session:
+            try:
+                user = session.get(Users, user_id)
+                if not user:
+                    print(f"No user found with ID {user_id}")
+                    return False
+
+                # Find all custom bots for this user
+                custom_bots = session.scalars(
+                    select(CustomBots).where(CustomBots.user_id == user_id)
+                ).all()
+                bot_ids = [bot.id for bot in custom_bots]
+
+                if bot_ids:
+                    # Separate orders that need to be preserved vs deleted
+                    preserved_statuses = {"paid", "shipped", "cancelled"}
+                    preserved_orders = session.scalars(
+                        select(Order).where(
+                            Order.custom_robot_id.in_(bot_ids),
+                            Order.status.in_(preserved_statuses)
+                        )
+                    ).all()
+
+                    # Set user_id to None for preserved orders
+                    for order in preserved_orders:
+                        order.user_id = None
+
+                    # Delete orders that are not preserved
+                    session.execute(
+                        delete(Order).where(
+                            Order.custom_robot_id.in_(bot_ids),
+                            Order.status.not_in(preserved_statuses)
+                        )
+                    )
+
+                    # Delete all parts associated with the user's custom bots
+                    session.execute(
+                        delete(CustomBotParts).where(CustomBotParts.custom_robot_id.in_(bot_ids))
+                    )
+
+                    # Delete the custom bots
+                    session.execute(
+                        delete(CustomBots).where(CustomBots.id.in_(bot_ids))
+                    )
+
+                # Finally, delete the user
+                session.delete(user)
+                session.commit()
+                print(f"User {user_id} and associated data deleted (orders preserved if needed).")
+                return True
+
+            except Exception as e:
+                session.rollback()
+                print(f"Error deleting user {user_id}: {e}")
+                return False
+
+    def delete_custom_bot_from_user(self, user_id, bot_id):
+        pass
+
+    def delete_part(self, part_id):
+        pass
+
+    def delete_order(self, order_id):
+        pass
 
 
 data_manager = SQLiteDataManager("custom_bot_db")
@@ -812,22 +1124,31 @@ data_manager.add_part([{"name": "oberlisk_arm",
                         }])
 data_manager.create_custom_bot_for_user([{"user_id": 1,
                                           "name": "Autobot",
-                                        ])
+                                          }])
 
-data_manager.add_part_to_custom_bot(1,1)
+data_manager.add_part_to_custom_bot(1, 1, 2)
 data_manager.add_order([{
     "user_id": 1,
     "custom_robot_id": 1,
     "quantity": 2,
     "status": "pending"}])
-    
+
 print(data_manager.get_user(id=1))
 print(data_manager.get_user(id=1, username="max"))
 print(data_manager.get_custom_bot(id=1))
-print(data_manager.get_custom_bot(id=1, name="Autobot"))
+print(data_manager.get_custom_bot(name="Autobot"))
 print(data_manager.get_part(id=1, name="oberlisk_arm", type="arm"))
 print(data_manager.get_order(id=1, user_id=1, status="pending"))
-}])
+data_manager.update_user(1, email="maximus@yahoo.com")
+data_manager.update_custom_bot(1, name="oberlisk_gundam")
+data_manager.update_bot_part(part_id=1, price=200)
+data_manager.update_order(1, shipping_address="yo momma house")
 '''
+print(data_manager.get_parts_from_custom_bot(custom_robot_id=1))
+print(data_manager.get_order(custom_robot_id = 1))
+print(data_manager.update_bot_part(part_id=1, price=10))
+print(data_manager.get_parts_from_custom_bot(custom_robot_id=1))
+print(data_manager.get_order(id=1))
 
-print(data_manager.get_parts_from_custom_bot(1))
+
+
