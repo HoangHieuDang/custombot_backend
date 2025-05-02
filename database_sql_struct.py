@@ -1,7 +1,6 @@
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
 from sqlalchemy import Integer, String, DateTime, Float, Enum
-from sqlalchemy import create_engine
 
 
 class Base(DeclarativeBase):
@@ -62,8 +61,7 @@ class Order(Base):
 
 '''
 #Run these lines of code 1 time to generate sqlite database
+from sqlalchemy import create_engine
 engine = create_engine("sqlite:///custom_bot_db", echo=True)
 Base.metadata.create_all(engine)
 '''
-
-

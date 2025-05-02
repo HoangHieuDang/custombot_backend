@@ -1,4 +1,7 @@
-'''Handling database related tasks by defining methods from class DatabaseInterface'''
+'''
+Handling database related tasks by defining methods from class DatabaseInterface
+'''
+
 from database_interface import DatabaseInterface
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func, and_, delete
@@ -796,7 +799,6 @@ class SQLiteDataManager(DatabaseInterface):
                 return False
 
     # Update
-
     def update_user(self, user_id, **changes):
         """
             Updates user attributes in the database based on the provided changes.
@@ -1031,7 +1033,6 @@ class SQLiteDataManager(DatabaseInterface):
                 return False
 
     # Delete
-
     def delete_user(self, user_id):
         """
         Delete a user and their related data, while preserving legal Order records.
@@ -1302,6 +1303,7 @@ class SQLiteDataManager(DatabaseInterface):
 
 
 data_manager = SQLiteDataManager("custom_bot_db")
+
 '''
 data_manager.add_user([{"username": "max",
                         "email": "max.mustermann@gmail.com",
@@ -1333,7 +1335,7 @@ data_manager.update_user(1, email="maximus@yahoo.com")
 data_manager.update_custom_bot(1, name="oberlisk_gundam")
 data_manager.update_bot_part(part_id=1, price=200)
 data_manager.update_order(1, shipping_address="yo momma house")
-'''
+
 print(data_manager.get_parts_from_custom_bot(custom_robot_id=1))
 print(data_manager.get_order(custom_robot_id = 1))
 print(data_manager.update_bot_part(part_id=1, price=10))
@@ -1341,3 +1343,4 @@ print(data_manager.get_parts_from_custom_bot(custom_robot_id=1))
 print(data_manager.get_order(id=1))
 data_manager.delete_user(user_id=1)
 data_manager.get_order(id=1)
+'''
