@@ -74,7 +74,7 @@ class DatabaseInterface(ABC):
         pass
 
     @abstractmethod
-    def delete_part(self, part_id):
+    def delete_robot_part(self, part_id):
         pass
 
     @abstractmethod
