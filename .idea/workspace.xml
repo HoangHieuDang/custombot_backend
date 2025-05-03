@@ -6,9 +6,13 @@
   <component name="ChangeListManager">
     <list default="true" id="ab9d9f96-c04f-4ec8-a42d-88ae4f931fde" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/crud_create.py" beforeDir="false" afterPath="$PROJECT_DIR$/crud_create.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/crud_delete.py" beforeDir="false" afterPath="$PROJECT_DIR$/crud_delete.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/crud_read.py" beforeDir="false" afterPath="$PROJECT_DIR$/crud_read.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/crud_update.py" beforeDir="false" afterPath="$PROJECT_DIR$/crud_update.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/database_handling.py" beforeDir="false" afterPath="$PROJECT_DIR$/database_handling.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/database_interface.py" beforeDir="false" afterPath="$PROJECT_DIR$/database_interface.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/database_sql_struct.py" beforeDir="false" afterPath="$PROJECT_DIR$/database_sql_struct.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
