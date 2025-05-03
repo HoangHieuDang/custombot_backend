@@ -1,0 +1,81 @@
+from flask import Blueprint, request, jsonify
+from database import database_handling as db
+
+users_bp = Blueprint("users", __name__)
+sql_db = db.SQLiteDataManager("./database/custom_bot_db")
+
+
+@users_bp.route("/", methods=["POST"])
+def create_user():
+    data = request.get_json()
+    username = data.get("username")
+    password = data.get("password")
+    email = data.get("email")
+
+    if username and password and email:
+        new_user = [{
+            "username": username,
+            "email": email,
+            "password": password
+        }]
+        success = sql_db.add_user(new_user)
+        if success:
+            return jsonify({"message": "User created successfully."}), 201
+        else:
+            return jsonify({"error": "User creation failed."}), 400
+    else:
+        return jsonify({"error": "Missing required fields."}), 400
+
+
+@users_bp.route("/<user_id>", methods=["DELETE"])
+def delete_user(user_id):
+    success = sql_db.delete_user(user_id)
+    if success:
+        return jsonify({"message": f"User{user_id} deleted"}), 201
+    else:
+        return jsonify({"error": f"Can not delete User{user_id}"}), 400
+
+
+@users_bp.route("/<user_id>", methods=["PUT"])
+def update_user(user_id):
+    updated_data = request.get_json()
+    new_username = updated_data.get("username")
+    new_password = updated_data.get("password")
+    new_email = updated_data.get("email")
+    updated_fields = dict()
+
+    if new_username:
+        updated_fields["username"] = new_username
+    if new_password:
+        updated_fields["password"] = new_password
+    if new_email:
+        updated_fields["email"] = new_email
+
+    update_result = sql_db.update_user(user_id, **updated_fields)
+    if update_result:
+        return jsonify({"message": f"User{user_id} updated"}), 201
+    else:
+        return jsonify({"error": f"Can not update User{user_id}"}), 400
+
+
+@users_bp.route("/", methods=["GET"])
+def get_user():
+    id = request.args.get("id", type=int)
+    email = request.args.get("email")
+    username = request.args.get("username")
+    created_at = request.args.get("created_at")
+    search_fields = dict()
+    if id:
+        search_fields["id"] = id
+    if email:
+        search_fields["email"] = email
+    if username:
+        search_fields["username"] = username
+    if created_at:
+        search_fields["created_at"] = created_at  # date time object
+    search_result = sql_db.get_user(**search_fields)  # get_user returns a list of dicts
+
+    if search_result is False:
+        return jsonify({"error": "Search failed or invalid parameters"}), 400
+    else:
+        return jsonify(search_result), 200

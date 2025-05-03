@@ -47,7 +47,7 @@ class DatabaseInterface(ABC):
     def get_parts_from_custom_bot(self, bot_id):
         pass
 
-        # Update Data
+    # Update Data
 
     @abstractmethod
     def update_user(self, user_id, **changes):

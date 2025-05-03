@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import select, and_, delete
-from database_sql_struct import Users, RobotParts, CustomBots, CustomBotParts, Order
+from database.database_sql_struct import Users, RobotParts, CustomBots, CustomBotParts, Order
 
 
 def delete_user(engine, user_id):

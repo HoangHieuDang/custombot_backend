@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func, and_
-from database_sql_struct import Users, RobotParts, CustomBots, CustomBotParts, Order
+from database.database_sql_struct import Users, RobotParts, CustomBots, CustomBotParts, Order
 
 
 def update_user(engine, user_id, **changes):
@@ -14,6 +14,7 @@ def update_user(engine, user_id, **changes):
                               keys are allowed:
                                 - 'email': The new email address.
                                 - 'username': The new username.
+                                - 'password': The new password
 
         Returns:
             bool:
@@ -25,14 +26,14 @@ def update_user(engine, user_id, **changes):
                        printed to help with debugging.
 
         Example:
-            update_user(1, email="new@example.com", username="new_name")
+            update_user(1, email="new@example.com", username="new_name", password="dffdfd")
 
         Notes:
             - The function uses SQLAlchemy ORM to query and update the user.
             - Only the fields explicitly listed in `possible_changes` can be updated.
             - The update is committed to the database only if all inputs are valid.
         """
-    possible_changes = {"email", "username"}
+    possible_changes = {"email", "username", "password"}
     with Session(engine) as session:
         for key_change, value in changes.items():
             # if key_change is valid
