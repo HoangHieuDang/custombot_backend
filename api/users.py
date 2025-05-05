@@ -35,7 +35,8 @@ def get_user():
     email = request.args.get("email")
     username = request.args.get("username")
     created_at = request.args.get("created_at")
-    search_fields = dict()
+
+    search_fields = {}
     if id:
         search_fields["id"] = id
     if email:
@@ -43,13 +44,13 @@ def get_user():
     if username:
         search_fields["username"] = username
     if created_at:
-        search_fields["created_at"] = created_at  # date time object
-    search_result = sql_db.get_user(**search_fields)  # get_user returns a list of dicts
+        search_fields["created_at"] = created_at  # assumed to be a valid string format
 
-    if search_result is False:
-        return jsonify({"error": "Search failed or invalid parameters"}), 400
-    else:
-        return jsonify(search_result), 200
+    result = sql_db.get_user(**search_fields)
+
+    if result is False:
+        return jsonify({"error": "Invalid search parameters or query error."}), 400
+    return jsonify(result), 200
 
 
 # update

@@ -86,8 +86,9 @@ class SQLiteDataManager(DatabaseInterface):
         return delete_order(self._engine, order_id)
 
 
-'''
+
 data_manager = SQLiteDataManager("custom_bot_db")
+'''
 data_manager.add_user([{"username": "max",
                         "email": "max.mustermann@gmail.com",
                         "password": "dfjkdjfd0ofjdfojf"}])
@@ -127,3 +128,4 @@ print(data_manager.get_order(id=1))
 data_manager.delete_user(user_id=1)
 data_manager.get_order(id=1)
 '''
+

@@ -63,19 +63,20 @@ def get_custom_bot():
     if created_at:
         search_fields["created_at"] = created_at
 
-    search_result = sql_db.get_custom_bot(**search_fields)
-    if search_result is False:
-        return jsonify({"error": "Search failed or invalid parameters"}), 400
+    result = sql_db.get_custom_bot(**search_fields)
 
-    return jsonify(search_result), 200
+    if result is False:
+        return jsonify({"error": "Invalid search parameters or query error."}), 400
+    return jsonify(result), 200
 
 
 @bots_bp.route("/<int:bot_id>/parts", methods=["GET"])
 def get_parts_from_custom_bot(bot_id):
-    parts = sql_db.get_parts_from_custom_bot(bot_id)
-    if parts is False:
+    result = sql_db.get_parts_from_custom_bot(bot_id)
+
+    if result is False:
         return jsonify({"error": f"No parts found or invalid bot ID {bot_id}"}), 400
-    return jsonify(parts), 200
+    return jsonify(result), 200
 
 
 # Update

@@ -104,8 +104,6 @@ def get_order():
         result = sql_db.get_order(**search_fields)
         if result is False:
             return jsonify({"error": "Search failed or invalid parameters"}), 400
-        elif not result:
-            return jsonify([]), 200  # Return empty list if nothing found
         else:
             return jsonify(result), 200
 
