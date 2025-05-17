@@ -3,8 +3,10 @@ from api.users import users_bp
 from api.bots import bots_bp
 from api.parts import parts_bp
 from api.orders import orders_bp
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 app.register_blueprint(users_bp, url_prefix="/users")
 app.register_blueprint(bots_bp, url_prefix="/custom_bots")
