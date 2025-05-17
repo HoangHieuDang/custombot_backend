@@ -7,7 +7,7 @@
     <list default="true" id="ab9d9f96-c04f-4ec8-a42d-88ae4f931fde" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/api/parts.py" beforeDir="false" afterPath="$PROJECT_DIR$/api/parts.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/database/crud/crud_update.py" beforeDir="false" afterPath="$PROJECT_DIR$/database/crud/crud_update.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/database/database_sql_struct.py" beforeDir="false" afterPath="$PROJECT_DIR$/database/database_sql_struct.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />

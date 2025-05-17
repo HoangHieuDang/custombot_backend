@@ -101,7 +101,9 @@ def update_part():
     if not part_id:
         return jsonify({"error": "Missing required field 'id'"}), 400
 
-    allowed_types = {"arm", "upper_arm", "lower_arm", "hand", "shoulder", "chest", "waist", "skirt", "upper_leg",
+    allowed_types = {"arm", "upper_arm", "lower_arm", "hand", "shoulder", "chest", "waist", "side_skirt", "front_skirt",
+                     "back_skirt",
+                     "upper_leg",
                      "lower_leg", "knee", "foot", "backpack"}
 
     update_fields = {}

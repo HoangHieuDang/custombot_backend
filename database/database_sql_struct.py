@@ -22,7 +22,10 @@ class RobotParts(Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
     type: Mapped[str] = mapped_column(String(50),
                                       nullable=False)
-    # "arm", "upper_arm", "lower_arm", "hand", "shoulder", "chest", "waist", "skirt", "upper_leg", "lower_leg","knee", "foot", "backpack"
+    # "arm", "upper_arm", "lower_arm", "hand", "shoulder", "chest", "waist", "side_skirt", "front_skirt",
+    # "back_skirt",
+    # "upper_leg",
+    # "lower_leg", "knee", "foot", "backpack"
     model_path: Mapped[str] = mapped_column()
     img_path: Mapped[str] = mapped_column()
     price: Mapped[float] = mapped_column()
