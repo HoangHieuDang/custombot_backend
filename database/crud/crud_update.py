@@ -95,7 +95,7 @@ def update_bot_part(engine, part_id, **changes):
     Update one or more attributes of a robot part. If its price changes,
     recalculate total_price for orders with 'pending' status that include the updated part.
     '''
-    allowed_types = {"arm", "upper_arm", "lower_arm", "hand", "shoulder", "chest", "waist", "side_skirt", "front_skirt",
+    allowed_types = {"skeleton","arm", "upper_arm", "lower_arm", "hand", "shoulder", "chest", "upper_waist", "lower_waist", "side_skirt", "front_skirt",
                      "back_skirt",
                      "upper_leg",
                      "lower_leg", "knee", "foot", "backpack"}
