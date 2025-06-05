@@ -82,7 +82,11 @@ def update_part():
     will recalculate total_price for orders with 'pending' status
     that include the updated part and make appropriate changes in the database
 
-    Allowed part_type values: {"arm", "shoulder", "chest", "skirt", "leg", "foot", "backpack"}
+    Allowed part_type values: {"skeleton","head", "arm", "upper_arm", "lower_arm", "hand", "shoulder", "chest", "upper_waist",
+                     "lower_waist", "side_skirt", "front_skirt",
+                     "back_skirt",
+                     "upper_leg",
+                     "lower_leg", "knee", "foot", "backpack"}
     Updatable fields: {"name", "type", "model_path", "img_path", "price"}
 
     Expected JSON:
@@ -99,7 +103,7 @@ def update_part():
     part_id = data.get("id")
     if not part_id:
         return jsonify({"error": "Missing required field 'id'"}), 400
-    allowed_types = {"skeleton", "arm", "upper_arm", "lower_arm", "hand", "shoulder", "chest", "upper_waist",
+    allowed_types = {"skeleton", "head", "arm", "upper_arm", "lower_arm", "hand", "shoulder", "chest", "upper_waist",
                      "lower_waist", "side_skirt", "front_skirt",
                      "back_skirt",
                      "upper_leg",
