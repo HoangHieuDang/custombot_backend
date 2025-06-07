@@ -172,20 +172,26 @@ def delete_robot_part(engine, part_id: int):
             return False
 
 
-def delete_part_from_custom_bot(engine, bot_id: int, part_id: int):
+def delete_part_from_custom_bot(engine, bot_id: int, part_id: int, direction: str):
     """
-    Delete a specific part from a custom bot if the bot is still in progress and not ordered.
+    Delete a specific part from a custom bot for a specific direction ('left', 'right', 'center'),
+    if the bot is still in progress and not ordered.
 
     Args:
         bot_id (int): ID of the custom bot.
         part_id (int): ID of the robot part to remove.
+        direction (str): The direction to remove from ('left', 'right', 'center').
 
     Returns:
         bool: True if deletion succeeded, False otherwise.
     """
+    if direction not in ("left", "right", "center"):
+        print("Invalid direction value.")
+        return False
+
     with Session(engine) as session:
         try:
-            # Check if the custom bot exists and is in progress
+            # Check if the bot exists and is modifiable
             custom_bot = session.get(CustomBots, bot_id)
             if not custom_bot:
                 print(f"No custom bot found with ID {bot_id}")
@@ -195,7 +201,7 @@ def delete_part_from_custom_bot(engine, bot_id: int, part_id: int):
                 print("Cannot delete part: Bot is not in 'in_progress' state.")
                 return False
 
-            # Check if this bot is referenced in any orders
+            # Check if associated with an order
             order_exists = session.scalars(
                 select(Order.id).where(Order.custom_robot_id == bot_id)
             ).first()
@@ -203,27 +209,30 @@ def delete_part_from_custom_bot(engine, bot_id: int, part_id: int):
                 print("Cannot delete part: Bot is associated with an order.")
                 return False
 
-            # Check if the part exists in this bot
-            stmt = select(CustomBotParts).where(
-                and_(
-                    CustomBotParts.custom_robot_id == bot_id,
-                    CustomBotParts.robot_part_id == part_id
+            # Check if the part with that direction exists
+            bot_part = session.scalar(
+                select(CustomBotParts).where(
+                    and_(
+                        CustomBotParts.custom_robot_id == bot_id,
+                        CustomBotParts.robot_part_id == part_id,
+                        CustomBotParts.direction == direction
+                    )
                 )
             )
-            bot_part = session.scalars(stmt).first()
 
             if not bot_part:
-                print("Part not found in this bot.")
+                print("Part not found in this bot with the specified direction.")
                 return False
 
-            # Delete the part from the bot
+            # Delete that specific directional part
             session.query(CustomBotParts).filter(
                 CustomBotParts.custom_robot_id == bot_id,
-                CustomBotParts.robot_part_id == part_id
+                CustomBotParts.robot_part_id == part_id,
+                CustomBotParts.direction == direction
             ).delete()
 
             session.commit()
-            print(f"Part ID {part_id} removed from bot ID {bot_id}.")
+            print(f"Part ID {part_id} ({direction}) removed from bot ID {bot_id}.")
             return True
 
         except Exception as e:
