@@ -35,8 +35,8 @@ class SQLiteDataManager(DatabaseInterface):
     def create_custom_bot_for_user(self, bots_list):
         return create_custom_bot_for_user(self._engine, bots_list)
 
-    def add_part_to_custom_bot(self, part_id, custom_robot_id, amount):
-        return add_part_to_custom_bot(self._engine, part_id, custom_robot_id, amount)
+    def add_part_to_custom_bot(self, part_id, custom_robot_id, amount, direction):
+        return add_part_to_custom_bot(self._engine, part_id, custom_robot_id, amount, direction)
 
     def add_order(self, orders_list):
         return add_order(self._engine, orders_list)
@@ -87,8 +87,8 @@ class SQLiteDataManager(DatabaseInterface):
     def delete_robot_part(self, part_id: int):
         return delete_robot_part(self._engine, part_id)
 
-    def delete_part_from_custom_bot(self, bot_id: int, part_id: int):
-        return delete_part_from_custom_bot(self._engine, bot_id, part_id)
+    def delete_part_from_custom_bot(self, bot_id: int, part_id: int, direction: str):
+        return delete_part_from_custom_bot(self._engine, bot_id, part_id, direction)
 
     def delete_order(self, order_id: int):
         return delete_order(self._engine, order_id)

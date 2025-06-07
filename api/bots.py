@@ -25,17 +25,35 @@ def create_custom_bot():
 @bots_bp.route("/add_part_to_bot", methods=["POST"])
 def add_part_to_bot():
     data = request.get_json()
+
     part_id = data.get("part_id")
     custom_robot_id = data.get("custom_robot_id")
     amount = data.get("amount")
+    direction = data.get("direction")
 
-    if part_id and custom_robot_id and amount:
-        success = sql_db.add_part_to_custom_bot(part_id, custom_robot_id, amount)
-        if success:
-            return jsonify(
-                {"message": f"{amount} of parts {part_id} added successfully to custom bot {custom_robot_id}!"}), 201
-        else:
-            return jsonify({"error": f"can't add part {part_id} to custom bot {custom_robot_id}"}), 400
+    # Basic validation
+    if not all([part_id, custom_robot_id, amount, direction]):
+        return jsonify({"error": "Missing required fields: part_id, custom_robot_id, amount, direction"}), 400
+
+    if direction not in ("left", "right", "center"):
+        return jsonify({"error": "Invalid direction. Must be 'left', 'right', or 'center'"}), 400
+
+    # Call the updated DB function
+    success = sql_db.add_part_to_custom_bot(
+        part_id=part_id,
+        custom_robot_id=custom_robot_id,
+        amount=amount,
+        direction=direction
+    )
+
+    if success:
+        return jsonify({
+            "message": f"{amount} of part {part_id} added successfully to bot {custom_robot_id} ({direction})!"
+        }), 201
+    else:
+        return jsonify({
+            "error": f"Unable to add part {part_id} to bot {custom_robot_id} in direction {direction}."
+        }), 400
 
 
 # Read
@@ -102,8 +120,18 @@ def update_custom_bot(bot_id):
 # Delete
 @bots_bp.route("/<int:bot_id>/<int:part_id>", methods=["DELETE"])
 def delete_part_from_custom_bot(bot_id, part_id):
-    success = sql_db.delete_part_from_custom_bot(bot_id, part_id)
+    direction = request.args.get("direction")
+
+    if not direction or direction not in ("left", "right", "center"):
+        return jsonify({"error": "Missing or invalid 'direction'. Must be 'left', 'right', or 'center'."}), 400
+
+    success = sql_db.delete_part_from_custom_bot(bot_id, part_id, direction)
+
     if success:
-        return jsonify({"message": f"Part {part_id} deleted from custom bot {bot_id}"}), 204
+        return jsonify({
+            "message": f"Part {part_id} ({direction}) deleted from custom bot {bot_id}"
+        }), 204
     else:
-        return jsonify({"error": f"Can not delete part {part_id} from custom bot {bot_id}"}), 400
+        return jsonify({
+            "error": f"Cannot delete part {part_id} ({direction}) from custom bot {bot_id}"
+        }), 400

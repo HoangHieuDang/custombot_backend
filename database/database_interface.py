@@ -19,7 +19,7 @@ class DatabaseInterface(ABC):
         pass
 
     @abstractmethod
-    def add_part_to_custom_bot(self, part_id, custom_robot_id, amount):
+    def add_part_to_custom_bot(self, part_id, custom_robot_id, amount, direction):
         pass
 
     @abstractmethod
@@ -65,6 +65,10 @@ class DatabaseInterface(ABC):
     def update_order(self, order_id, **changes):
         pass
 
+    @abstractmethod
+    def update_part_on_custom_bot(self, custom_robot_id, new_part_id, direction, amount):
+        pass
+
     # Delete Data
     @abstractmethod
     def delete_user(self, user_id):
@@ -75,7 +79,7 @@ class DatabaseInterface(ABC):
         pass
 
     @abstractmethod
-    def delete_part_from_custom_bot(self, bot_id: int, part_id: int):
+    def delete_part_from_custom_bot(self, bot_id: int, part_id: int, direction: str):
         pass
 
     @abstractmethod
