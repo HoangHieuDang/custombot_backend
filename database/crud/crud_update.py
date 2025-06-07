@@ -243,3 +243,78 @@ def update_order(engine, order_id, **changes):
             session.rollback()
             print(f"Error updating order {order_id}: {e}")
             return False
+
+
+def update_part_on_custom_bot(engine, custom_robot_id, new_part_id, direction, amount=1):
+    """
+    Updates the custom bot to use a new robot part in a given direction ('left', 'right', 'center').
+
+    If a part already exists for that direction and type, it will be replaced.
+
+    Args:
+        engine: SQLAlchemy engine.
+        custom_robot_id (int): The ID of the custom bot.
+        new_part_id (int): The ID of the new robot part to assign.
+        direction (str): One of 'left', 'right', 'center'.
+        amount (int): Quantity to assign (default is 1).
+
+    Returns:
+        bool: True if updated successfully, False otherwise.
+    """
+    if direction not in ("left", "right", "center"):
+        print("Invalid direction!")
+        return False
+
+    if amount < 1:
+        print("Amount must be >= 1.")
+        return False
+
+    with Session(engine) as session:
+        try:
+            # Validate bot
+            bot = session.scalar(select(CustomBots).where(CustomBots.id == custom_robot_id))
+            if not bot:
+                print(f"Bot ID {custom_robot_id} not found.")
+                return False
+            if bot.status == "ordered":
+                print(f"Bot '{bot.name}' already ordered — cannot update.")
+                return False
+
+            # Validate part
+            new_part = session.scalar(select(RobotParts).where(RobotParts.id == new_part_id))
+            if not new_part:
+                print(f"No robot part found with ID {new_part_id}.")
+                return False
+
+            # Remove any existing part of same type & direction
+            existing_entry = session.scalar(
+                select(CustomBotParts)
+                .join(RobotParts, CustomBotParts.robot_part_id == RobotParts.id)
+                .where(
+                    CustomBotParts.custom_robot_id == custom_robot_id,
+                    CustomBotParts.direction == direction,
+                    RobotParts.type == new_part.type
+                )
+            )
+
+            if existing_entry:
+                session.delete(existing_entry)
+                session.flush()  # Safe to remove before re-adding
+
+            # Add new part
+            new_custom_part = CustomBotParts(
+                custom_robot_id=custom_robot_id,
+                robot_part_id=new_part_id,
+                direction=direction,
+                robot_part_amount=amount
+            )
+            session.add(new_custom_part)
+
+            session.commit()
+            print(f"Updated bot {custom_robot_id} with part {new_part_id} at direction {direction}.")
+            return True
+
+        except Exception as e:
+            session.rollback()
+            print(f"Failed to update part: {e}")
+            return False

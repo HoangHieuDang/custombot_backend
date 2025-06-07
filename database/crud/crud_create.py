@@ -171,10 +171,9 @@ def create_custom_bot_for_user(engine, bots_list):
             return False
 
 
-def add_part_to_custom_bot(engine, part_id, custom_robot_id, amount):
+def add_part_to_custom_bot(engine, part_id, custom_robot_id, amount, direction):
     """
-    Adds a robot part to a custom bot by inserting or updating an entry
-    in the CustomBotParts association table.
+    Adds a robot part to a custom bot with specified direction ('left', 'right', 'center').
 
     Only allows modification if the custom bot is still in 'in_progress' status.
 
@@ -182,10 +181,17 @@ def add_part_to_custom_bot(engine, part_id, custom_robot_id, amount):
         part_id (int): The ID of the robot part to be added.
         custom_robot_id (int): The ID of the custom bot to which the part will be added.
         amount (int): The quantity of the part to add (must be >= 1).
+        direction (str): The direction this part is assigned to ('left', 'right', or 'center').
 
     Returns:
         bool: True if successful, False otherwise.
     """
+
+    # Validate direction
+    if direction not in ("left", "right", "center"):
+        print("Invalid direction. Must be 'left', 'right', or 'center'.")
+        return False
+
     with Session(engine) as session:
         # Validate amount
         if not isinstance(amount, int) or amount < 1:
@@ -209,27 +215,27 @@ def add_part_to_custom_bot(engine, part_id, custom_robot_id, amount):
             return False
 
         try:
-            # Check if the part is already in the bot
+            # Check if the part already exists at this direction
             existing_entry = session.scalar(
                 select(CustomBotParts)
                 .where(
                     CustomBotParts.robot_part_id == part_id,
-                    CustomBotParts.custom_robot_id == custom_robot_id
+                    CustomBotParts.custom_robot_id == custom_robot_id,
+                    CustomBotParts.direction == direction
                 )
             )
 
             if existing_entry:
-                # If already exists, update the amount
                 existing_entry.robot_part_amount += amount
-                print(f"Updated part amount for part_id {part_id} in bot_id {custom_robot_id}.")
+                print(f"Updated part amount for part_id {part_id} ({direction}) in bot_id {custom_robot_id}.")
             else:
-                # Otherwise, insert new part
                 session.add(CustomBotParts(
                     robot_part_id=part_id,
                     custom_robot_id=custom_robot_id,
-                    robot_part_amount=amount
+                    robot_part_amount=amount,
+                    direction=direction
                 ))
-                print(f"Added part_id {part_id} to bot_id {custom_robot_id}.")
+                print(f"Added part_id {part_id} ({direction}) to bot_id {custom_robot_id}.")
 
             session.commit()
             return True

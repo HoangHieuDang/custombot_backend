@@ -1,6 +1,7 @@
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
 from sqlalchemy import Integer, String, DateTime, Float, Enum
+from sqlalchemy import Enum as SqlEnum
 
 
 class Base(DeclarativeBase):
@@ -46,6 +47,8 @@ class CustomBotParts(Base):
     __tablename__ = "custom_bot_parts"
     custom_robot_id: Mapped[int] = mapped_column(ForeignKey("custom_bots.id"), primary_key=True)
     robot_part_id: Mapped[int] = mapped_column(ForeignKey("robot_parts.id"), primary_key=True)
+    DirectionEnum = SqlEnum("left", "right", "center", name="part_direction")
+    direction: Mapped[str] = mapped_column(DirectionEnum, primary_key=True)
     robot_part_amount: Mapped[int] = mapped_column(Integer, nullable=False)
 
 

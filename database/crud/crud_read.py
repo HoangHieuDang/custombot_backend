@@ -324,7 +324,7 @@ def get_order(engine, **criteria):
 
 def get_parts_from_custom_bot(engine, custom_robot_id):
     """
-    Retrieve all parts linked to a given custom robot.
+    Retrieve all parts linked to a given custom robot, including their direction.
 
     Args:
         custom_robot_id (int): ID of the custom robot.
@@ -340,20 +340,19 @@ def get_parts_from_custom_bot(engine, custom_robot_id):
 
     with Session(engine) as session:
         try:
-            # First check if the custom robot exists
-            exists_query = select(CustomBots).where(CustomBots.id == custom_robot_id)
-            bot = session.scalar(exists_query)
-
+            # Check if the custom bot exists
+            bot = session.scalar(select(CustomBots).where(CustomBots.id == custom_robot_id))
             if not bot:
                 print(f"Custom robot with ID {custom_robot_id} does not exist.")
                 return False
 
-            # Proceed to fetch the parts
+            # Fetch parts with direction included
             query = (
                 select(
                     CustomBotParts.custom_robot_id,
                     CustomBots.name.label("custom_bot_name"),
                     CustomBots.user_id.label("user_id"),
+                    CustomBotParts.direction,  # ← Added
                     RobotParts.id.label("robot_part_id"),
                     RobotParts.name.label("robot_part_name"),
                     RobotParts.type,
@@ -377,6 +376,7 @@ def get_parts_from_custom_bot(engine, custom_robot_id):
                 "custom_robot_id": row.custom_robot_id,
                 "user_id": row.user_id,
                 "custom_bot_name": row.custom_bot_name,
+                "direction": row.direction,  # ← Added
                 "robot_part_id": row.robot_part_id,
                 "robot_part_name": row.robot_part_name,
                 "type": row.type,
@@ -389,3 +389,4 @@ def get_parts_from_custom_bot(engine, custom_robot_id):
         except Exception as e:
             print(f"Query failed: {e}")
             return False
+
