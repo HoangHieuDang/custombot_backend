@@ -117,6 +117,37 @@ def update_custom_bot(bot_id):
         return jsonify({"error": f"Cannot update Custom Bot {bot_id}"}), 400
 
 
+@bots_bp.route("/<int:bot_id>/update_part", methods=["PUT"])
+def update_part_on_custom_bot(bot_id):
+    data = request.get_json()
+
+    new_part_id = data.get("part_id")
+    direction = data.get("direction")
+    amount = data.get("amount", 1)  # default to 1 if not provided
+
+    if not all([new_part_id, direction]):
+        return jsonify({"error": "Missing required fields: part_id and direction"}), 400
+
+    if direction not in ("left", "right", "center"):
+        return jsonify({"error": "Invalid direction. Must be 'left', 'right', or 'center'"}), 400
+
+    success = sql_db.update_part_on_custom_bot(
+        custom_robot_id=bot_id,
+        new_part_id=new_part_id,
+        direction=direction,
+        amount=amount
+    )
+
+    if success:
+        return jsonify({
+            "message": f"Part {new_part_id} updated in bot {bot_id} at {direction}."
+        }), 200
+    else:
+        return jsonify({
+            "error": f"Failed to update part in bot {bot_id} at {direction}."
+        }), 400
+
+
 # Delete
 @bots_bp.route("/<int:bot_id>/<int:part_id>", methods=["DELETE"])
 def delete_part_from_custom_bot(bot_id, part_id):
