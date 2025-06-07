@@ -118,8 +118,74 @@ def get_custom_bot(engine, **criteria):
             return False
 
 
+def get_part_paginated(engine, page=1, page_size=10, exclude_ids=None, **criteria):
+    """
+    Retrieves robot parts with filters, pagination, and optional exclusions.
+    """
+    if exclude_ids is None:
+        exclude_ids = []
+
+    possible_filters = {"id", "name", "type", "price"}
+
+    with Session(engine) as session:
+        filter_conditions = []
+
+        for attr, value in criteria.items():
+            if attr in possible_filters:
+                try:
+                    column = getattr(RobotParts, attr)
+                    filter_conditions.append(column == value)
+                except Exception as e:
+                    print(f"Error building filter for '{attr}': {e}")
+                    return False
+            else:
+                print(f"Invalid filter key: '{attr}'")
+                return False
+
+        try:
+            query = select(RobotParts)
+
+            if filter_conditions:
+                combined_filter = filter_conditions.pop(0)
+                for condition in filter_conditions:
+                    combined_filter &= condition
+                query = query.where(combined_filter)
+
+            if exclude_ids:
+                query = query.where(RobotParts.id.notin_(exclude_ids))
+
+            # Count total before pagination
+            total_results = session.scalars(query).all()
+            total_count = len(total_results)
+
+            # Pagination
+            offset = (page - 1) * page_size
+            paginated_query = query.offset(offset).limit(page_size)
+            results = session.scalars(paginated_query).all()
+
+            return {
+                "page": page,
+                "page_size": page_size,
+                "total_count": total_count,
+                "total_pages": (total_count + page_size - 1) // page_size,
+                "results": [{
+                    "id": row.id,
+                    "name": row.name,
+                    "type": row.type,
+                    "model_path": row.model_path,
+                    "img_path": row.img_path,
+                    "price": row.price
+                } for row in results]
+            }
+
+        except Exception as e:
+            print(f"Query failed: {e}")
+            return False
+
+
 def get_part(engine, **criteria):
     """
+    This function will fetch all parts from database - NOT recommended
     Retrieve robot parts matching given filters.
 
     Args:
@@ -323,4 +389,3 @@ def get_parts_from_custom_bot(engine, custom_robot_id):
         except Exception as e:
             print(f"Query failed: {e}")
             return False
-

@@ -41,18 +41,28 @@ def create_part():
 @parts_bp.route("/", methods=["GET"])
 def get_part():
     """
-    Retrieves a part from the database based on dynamic search criteria.
+    Retrieves robot parts with optional filters, pagination, and exclusion.
 
-    Acceptable query parameters:
-        - id: The unique identifier of the part.
-        - name: The name of the part.
-        - part_type: The type/category of the part.
-        - price: The price of the part.
+    Query parameters:
+    - id: int
+    - name: str
+    - part_type: str
+    - price: float
+    - page: int (default 1)
+    - page_size: int (default 10)
+    - exclude_ids: comma-separated list of part IDs to exclude
     """
     id = request.args.get("id", type=int)
     name = request.args.get("name")
     part_type = request.args.get("part_type")
     price = request.args.get("price", type=float)
+    page = request.args.get("page", default=1, type=int)
+    page_size = request.args.get("page_size", default=10, type=int)
+    exclude_ids_raw = request.args.get("exclude_ids")  # e.g. "3,5,7"
+
+    exclude_ids = []
+    if exclude_ids_raw:
+        exclude_ids = [int(x) for x in exclude_ids_raw.split(",") if x.isdigit()]
 
     search_criteria = {}
     if id:
@@ -64,12 +74,13 @@ def get_part():
     if price is not None:
         search_criteria["price"] = price
 
-    result = sql_db.get_part(**search_criteria)
+    result = sql_db.get_part_paginated(page, page_size, exclude_ids, **search_criteria)
 
     if result is False:
         return jsonify({"error": "Search failed or invalid parameters"}), 400
     else:
         return jsonify(result), 200
+
 
 
 # update

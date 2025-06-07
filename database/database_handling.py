@@ -3,7 +3,8 @@ Handling database related tasks by
 defining methods from class DatabaseInterface
 '''
 from database.crud.crud_create import add_part, add_user, create_custom_bot_for_user, add_part_to_custom_bot, add_order
-from database.crud.crud_read import get_user, get_custom_bot, get_part, get_order, get_parts_from_custom_bot
+from database.crud.crud_read import get_user, get_custom_bot, get_part, get_order, get_parts_from_custom_bot, \
+    get_part_paginated
 from database.crud.crud_update import update_user, update_order, update_custom_bot, update_bot_part
 from database.crud.crud_delete import delete_user, delete_order, delete_part_from_custom_bot, delete_robot_part, \
     delete_custom_bot_from_user
@@ -55,6 +56,9 @@ class SQLiteDataManager(DatabaseInterface):
     def get_parts_from_custom_bot(self, custom_robot_id):
         return get_parts_from_custom_bot(self._engine, custom_robot_id)
 
+    def get_part_paginated(self, page, page_size, exclude_ids, **criteria):
+        return get_part_paginated(self._engine, page, page_size, exclude_ids, **criteria)
+
     # Update
     def update_user(self, user_id, **changes):
         return update_user(self._engine, user_id, **changes)
@@ -84,7 +88,6 @@ class SQLiteDataManager(DatabaseInterface):
 
     def delete_order(self, order_id: int):
         return delete_order(self._engine, order_id)
-
 
 
 data_manager = SQLiteDataManager("custom_bot_db")
@@ -128,4 +131,3 @@ print(data_manager.get_order(id=1))
 data_manager.delete_user(user_id=1)
 data_manager.get_order(id=1)
 '''
-
