@@ -12,14 +12,15 @@ def create_custom_bot():
     user_id = data.get("user_id")
     name = data.get("name")
 
-    if user_id and name:
-        success = sql_db.create_custom_bot_for_user([{"user_id": user_id, "name": name}])
-        if success:
-            return jsonify({"message": f"Custom Bot '{name}' created successfully for user_id {user_id}"}), 201
-        else:
-            return jsonify({"error": "Database couldn't create the new custom bot"}), 400
+    if not user_id or not name:
+        return jsonify({"error": "Missing required fields: 'user_id' and 'name'"}), 400
+
+    success, message = sql_db.create_custom_bot_for_user([{"user_id": user_id, "name": name}])
+
+    if success:
+        return jsonify({"message": message}), 201
     else:
-        return jsonify({"error": "Can not create custom bot! Missing required fields"}), 400
+        return jsonify({"error": message}), 400
 
 
 @bots_bp.route("/add_part_to_bot", methods=["POST"])

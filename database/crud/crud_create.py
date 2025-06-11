@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import select, func
+from sqlalchemy import select, func, and_
 from datetime import datetime
 from database.database_sql_struct import Users, RobotParts, CustomBots, CustomBotParts, Order
 
@@ -117,58 +117,60 @@ def create_custom_bot_for_user(engine, bots_list):
         bots_list (list): A list of dictionaries. Each dictionary must contain:
             - 'user_id' (int): Foreign key referencing the user.
             - 'name' (str): Name of the custom bot.
+
     Returns:
-        bool:
-            - True if at least one bot was successfully added.
-            - False if no valid bots were added or an error occurred.
+        tuple: (success, message)
+            - success (bool): True if at least one bot was successfully added, False otherwise.
+            - message (str): Detailed outcome or error message.
     '''
     if not bots_list or not isinstance(bots_list, list):
-        print("Empty bots_list or invalid data format!")
-        return False
+        return False, "Empty bots_list or invalid data format."
 
     with Session(engine) as session:
         new_bots_list = []
 
         for bot in bots_list:
-            # Validate required fields
             if not all(k in bot for k in ("user_id", "name")):
-                print(f"Missing required fields in bot data: {bot}")
-                continue
+                continue  # Skip bots with missing data
 
             # Check if user exists
-            stmt = select(Users).where(Users.id == bot["user_id"])
-            user = session.scalar(stmt)
+            user = session.scalar(select(Users).where(Users.id == bot["user_id"]))
             if not user:
-                print(f"No user found for user_id {bot['user_id']}, skipping.")
                 continue
 
-            # Create new CustomBot instance
+            # Check if bot name already exists for this user
+            existing_bot = session.scalar(
+                select(CustomBots).where(
+                    and_(
+                        CustomBots.user_id == bot["user_id"],
+                        CustomBots.name == bot["name"]
+                    )
+                )
+            )
+            if existing_bot:
+                return False, f"Bot name '{bot['name']}' already exists for user_id {bot['user_id']}"
+
             try:
                 new_bot = CustomBots(
                     user_id=bot["user_id"],
                     name=bot["name"],
-                    status="in_progress",  # Default to 'in_progress'
+                    status="in_progress",
                     created_at=datetime.now(),
                 )
                 new_bots_list.append(new_bot)
             except Exception as e:
-                print(f"Error creating CustomBot object: {e}")
-                continue
+                return False, f"Error creating CustomBot object: {e}"
 
-        # If at least one valid bot to add
         if new_bots_list:
             try:
                 session.add_all(new_bots_list)
                 session.commit()
-                print(f"Successfully added {len(new_bots_list)} custom bots.")
-                return True
+                return True, f"Successfully added {len(new_bots_list)} custom bot(s)."
             except Exception as e:
-                print(f"Error committing bots to database: {e}")
                 session.rollback()
-                return False
+                return False, f"Database commit failed: {e}"
         else:
-            print("No valid bots to add.")
-            return False
+            return False, "No valid bots to add."
 
 
 def add_part_to_custom_bot(engine, part_id, custom_robot_id, amount, direction):

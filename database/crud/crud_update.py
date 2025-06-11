@@ -61,33 +61,48 @@ def update_custom_bot(engine, bot_id, **changes):
                           Only the 'name' field is allowed.
 
     Returns:
-        bool:
-            - True if the update was successful.
-            - False if an invalid attribute is provided or if an error occurs.
-
-    Example:
-        update_custom_bot(5, name="Battle Titan")
-
-    Notes:
-        - Only the 'name' field is allowed to be updated.
-        - Status changes must be handled through the ordering process or other
-          domain-specific workflows to ensure consistency across tables.
+        bool: True if update was successful, False otherwise.
     """
-    possible_changes = {"name"}
+    allowed_changes = {"name"}
+
     with Session(engine) as session:
-        for key_change, value in changes.items():
-            if key_change in possible_changes:
-                try:
-                    custom_bot = session.execute(select(CustomBots).filter_by(id=bot_id)).scalar_one()
-                    setattr(custom_bot, key_change, value)
-                    session.commit()
-                except Exception as e:
-                    print("Sth went wrong while updating db: " + str(e))
-                    return False
-            else:
-                print("Invalid input attributes!")
+        for key, value in changes.items():
+            if key not in allowed_changes:
+                print("❌ Invalid attribute provided.")
                 return False
-    return True
+
+            try:
+                # Fetch the bot first
+                custom_bot = session.execute(
+                    select(CustomBots).filter_by(id=bot_id)
+                ).scalar_one()
+
+                # Check name uniqueness per user before updating
+                if key == "name":
+                    # Check if any other bot with the same name exists for this user
+                    name_conflict = session.execute(
+                        select(CustomBots)
+                        .where(
+                            and_(
+                                CustomBots.user_id == custom_bot.user_id,
+                                CustomBots.name == value,
+                                CustomBots.id != bot_id
+                            )
+                        )
+                    ).first()
+
+                    if name_conflict:
+                        print(f"❌ Bot name '{value}' already exists for user {custom_bot.user_id}.")
+                        return False
+
+                # Safe to update
+                setattr(custom_bot, key, value)
+                session.commit()
+                return True
+
+            except Exception as e:
+                print("❌ Error while updating custom bot:", str(e))
+                return False
 
 
 def update_bot_part(engine, part_id, **changes):
