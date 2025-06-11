@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func, and_
 from database.database_sql_struct import Users, RobotParts, CustomBots, CustomBotParts, Order
+from sqlalchemy.exc import SQLAlchemyError
 
 
 def update_user(engine, user_id, **changes):
@@ -61,28 +62,28 @@ def update_custom_bot(engine, bot_id, **changes):
                           Only the 'name' field is allowed.
 
     Returns:
-        bool: True if update was successful, False otherwise.
+        tuple:
+            - success (bool): True if the update was successful, False otherwise.
+            - message (str): Description of what happened or went wrong.
     """
     allowed_changes = {"name"}
 
     with Session(engine) as session:
         for key, value in changes.items():
             if key not in allowed_changes:
-                print("❌ Invalid attribute provided.")
-                return False
+                return False, f"Invalid update field '{key}' — only 'name' is allowed."
 
             try:
-                # Fetch the bot first
                 custom_bot = session.execute(
                     select(CustomBots).filter_by(id=bot_id)
-                ).scalar_one()
+                ).scalar_one_or_none()
 
-                # Check name uniqueness per user before updating
+                if not custom_bot:
+                    return False, f"Custom bot with id {bot_id} not found."
+
                 if key == "name":
-                    # Check if any other bot with the same name exists for this user
                     name_conflict = session.execute(
-                        select(CustomBots)
-                        .where(
+                        select(CustomBots).where(
                             and_(
                                 CustomBots.user_id == custom_bot.user_id,
                                 CustomBots.name == value,
@@ -92,17 +93,15 @@ def update_custom_bot(engine, bot_id, **changes):
                     ).first()
 
                     if name_conflict:
-                        print(f"❌ Bot name '{value}' already exists for user {custom_bot.user_id}.")
-                        return False
+                        return False, f"Bot name '{value}' already exists for user {custom_bot.user_id}."
 
-                # Safe to update
                 setattr(custom_bot, key, value)
                 session.commit()
-                return True
+                return True, f"Custom bot {bot_id} updated successfully."
 
-            except Exception as e:
-                print("❌ Error while updating custom bot:", str(e))
-                return False
+            except SQLAlchemyError as e:
+                session.rollback()
+                return False, f"Database error: {str(e)}"
 
 
 def update_bot_part(engine, part_id, **changes):

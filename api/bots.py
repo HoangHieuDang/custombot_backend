@@ -104,18 +104,16 @@ def update_custom_bot(bot_id):
     updated_data = request.get_json()
     new_name = updated_data.get("name")
 
-    updated_fields = {}
-    if new_name:
-        updated_fields["name"] = new_name
-
-    if not updated_fields:
+    if not new_name:
         return jsonify({"error": "No update fields provided"}), 400
 
-    update_result = sql_db.update_custom_bot(bot_id, **updated_fields)
-    if update_result:
-        return jsonify({"message": f"Custom Bot {bot_id} updated"}), 200
+    # Use updated SQL handler that returns (success, message)
+    success, message = sql_db.update_custom_bot(bot_id, name=new_name)
+
+    if success:
+        return jsonify({"message": message}), 200
     else:
-        return jsonify({"error": f"Cannot update Custom Bot {bot_id}"}), 400
+        return jsonify({"error": message}), 400
 
 
 @bots_bp.route("/<int:bot_id>/update_part", methods=["PUT"])
