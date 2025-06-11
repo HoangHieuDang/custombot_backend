@@ -6,8 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="ab9d9f96-c04f-4ec8-a42d-88ae4f931fde" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/api/bots.py" beforeDir="false" afterPath="$PROJECT_DIR$/api/bots.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/database/crud/crud_update.py" beforeDir="false" afterPath="$PROJECT_DIR$/database/crud/crud_update.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/database/custom_bot_db" beforeDir="false" afterPath="$PROJECT_DIR$/database/custom_bot_db" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
