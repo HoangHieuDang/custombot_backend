@@ -390,3 +390,38 @@ def get_parts_from_custom_bot(engine, custom_robot_id):
             print(f"Query failed: {e}")
             return False
 
+def get_part_type_sets(engine):
+    """
+    Fetch all unique part types from RobotParts,
+    and identify which types are used asymmetrically (left/right).
+
+    Args:
+        engine: SQLAlchemy engine
+
+    Returns:
+        (set_of_all_types, set_of_asymmetrical_types)
+        Both are sorted lists of strings.
+    """
+    with Session(engine) as session:
+        try:
+            # Fetch all distinct part types
+            all_type_query = select(RobotParts.type).distinct()
+            all_types = session.execute(all_type_query).all()
+            type_set = {str(row[0]) for row in all_types}
+
+            # Fetch part types where direction is left or right
+            asym_query = (
+                select(RobotParts.type, CustomBotParts.direction)
+                .join(CustomBotParts, CustomBotParts.robot_part_id == RobotParts.id)
+                .where(CustomBotParts.direction.in_(["left", "right"]))
+                .distinct()
+            )
+            asym_rows = session.execute(asym_query).all()
+            asymmetrical_set = {str(row[0]) for row in asym_rows}
+
+            return sorted(type_set), sorted(asymmetrical_set)
+
+        except Exception as e:
+            print(f"Failed to fetch part type sets: {e}")
+            return [], []
+

@@ -81,7 +81,16 @@ def get_part():
     else:
         return jsonify(result), 200
 
-
+@parts_bp.route("/types", methods=["GET"])
+def get_possible_part_types():
+    try:
+        all_types, asymmetrical_types = sql_db.get_part_type_sets()
+        return jsonify({
+            "all_types": all_types,
+            "asymmetrical_types": asymmetrical_types
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # update
 @parts_bp.route("/", methods=["PUT"])

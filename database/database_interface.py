@@ -44,7 +44,15 @@ class DatabaseInterface(ABC):
         pass
 
     @abstractmethod
+    def get_part_paginated(engine, page=1, page_size=10, exclude_ids=None, **criteria):
+        pass
+
+    @abstractmethod
     def get_parts_from_custom_bot(self, bot_id):
+        pass
+
+    @abstractmethod
+    def get_part_type_sets(self):
         pass
 
     # Update Data
