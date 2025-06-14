@@ -14,7 +14,7 @@ app.config.from_object(ApplicationConfig)
 # Apply CORS before registering blueprints
 CORS(
     app,
-    origins=["http://localhost:5173"],
+    origins=["http://127.0.0.1:5173"],
     supports_credentials=True,
     expose_headers=["Content-Type", "X-CSRFToken"],
     allow_headers=["Content-Type", "X-CSRFToken"])
@@ -28,4 +28,4 @@ app.register_blueprint(parts_bp, url_prefix="/parts")
 app.register_blueprint(orders_bp, url_prefix="/orders")
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, host="127.0.0.1")
