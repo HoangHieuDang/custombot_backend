@@ -1,6 +1,6 @@
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
-from sqlalchemy import Integer, String, DateTime, Float, Enum
+from sqlalchemy import Integer, String, DateTime, Float, Enum, Text
 from sqlalchemy import Enum as SqlEnum
 
 
@@ -13,7 +13,7 @@ class Users(Base):
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
     username: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
     email: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
-    password: Mapped[str] = mapped_column(String(100), nullable=False)
+    password: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[DateTime] = mapped_column(DateTime)
 
 

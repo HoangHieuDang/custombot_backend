@@ -28,7 +28,15 @@ class DatabaseInterface(ABC):
 
     # Read Data
     @abstractmethod
+    def get_current_login_user_info(self, user_id):
+        pass
+
+    @abstractmethod
     def get_user(self, **criteria):
+        pass
+
+    @abstractmethod
+    def get_login_user(engine, email, password):
         pass
 
     @abstractmethod

@@ -1,28 +1,10 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, or_
 from datetime import datetime
 from database.database_sql_struct import Users, RobotParts, CustomBots, CustomBotParts, Order
 
 
 def add_user(engine, users_list):
-    '''
-    Adds a list of users to the database.
-
-    Args:
-        users_list (list of dict): Each dictionary must contain:
-            - 'username' (str): Username of the user.
-            - 'email' (str): Email address of the user.
-            - 'password' (str): Password of the user.
-
-    Returns:
-        bool:
-            - True if all valid users were successfully added.
-            - False if any error occurs during the process.
-
-    Notes:
-        - Validates the input format.
-        - Skips any invalid user data without stopping the entire process.
-    '''
     if not users_list or not isinstance(users_list, list):
         print("users_list is empty or not a valid list!")
         return False
@@ -30,16 +12,24 @@ def add_user(engine, users_list):
     with Session(engine) as session:
         for user in users_list:
             try:
-                # Basic validation for required fields
                 if not all(k in user for k in ("username", "email", "password")):
                     print(f"Missing fields in user data: {user}. Skipping.")
                     continue
 
-                # Optionally, you can validate email format here if you want (simple regex or library)
+                # Check for duplicates
+                existing_user = session.execute(
+                    select(Users).where(
+                        or_(Users.username == user["username"], Users.email == user["email"])
+                    )
+                ).scalar_one_or_none()
+
+                if existing_user:
+                    print(f"Username {user['username']} or email {user['email']} already exists. Skipping.")
+                    continue
 
                 new_user = Users(
                     username=user["username"],
-                    email=user["email"],
+                    email=user["email"].strip().lower(),
                     password=user["password"],
                     created_at=datetime.now()
                 )
@@ -51,10 +41,8 @@ def add_user(engine, users_list):
             except Exception as e:
                 print(f"Cannot add user {user.get('username', 'unknown')}: {e}")
                 session.rollback()
-                continue  # Try adding the next user instead of failing the whole process
 
     return True
-
 
 def add_part(engine, parts_list):
     '''

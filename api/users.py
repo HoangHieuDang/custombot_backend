@@ -1,34 +1,79 @@
-from flask import Blueprint, request, jsonify
 from database import database_handling as db
+from flask import Blueprint, request, jsonify, session
+from api.extensions import bcrypt
 
 users_bp = Blueprint("users", __name__)
 sql_db = db.SQLiteDataManager("./database/custom_bot_db")
 
 
 # create
-@users_bp.route("/", methods=["POST"])
+# USER_REGISTRATION
+@users_bp.route("/register", methods=["POST"])
 def create_user():
     data = request.get_json()
     username = data.get("username")
-    password = data.get("password")
     email = data.get("email")
+    password = data.get("password")
 
-    if username and password and email:
-        new_user = [{
-            "username": username,
-            "email": email,
-            "password": password
-        }]
-        success = sql_db.add_user(new_user)
-        if success:
-            return jsonify({"message": "User created successfully."}), 201
-        else:
-            return jsonify({"error": "User creation failed."}), 400
-    else:
+    if not all([username, email, password]):
         return jsonify({"error": "Missing required fields."}), 400
+
+    hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
+
+    new_user = [{
+        "username": username,
+        "email": email.strip().lower(),
+        "password": hashed_password
+    }]
+
+    success = sql_db.add_user(new_user)
+    if success:
+        return jsonify({"message": "User created successfully."}), 201
+    else:
+        return jsonify({"error": "User creation failed. Username or email may already exist."}), 400
+
+
+# USER_LOGIN
+@users_bp.route("/login", methods=["POST"])
+def login_user():
+    print("🔥 login route hit")
+    email = request.json.get("email")
+    password = request.json.get("password")
+    logined_user = sql_db.get_login_user(email, password)
+    print("✅ Got user ID:", logined_user, type(logined_user))
+    if not logined_user:
+        print("❌ Unauthorized branch hit")
+        return jsonify({"error": "Unauthorized"}), 401
+    print("🎉 Login successful, setting session")
+    session["user_id"] = int(logined_user)
+
+    return jsonify({"id": logined_user, "email": email})
+
+
+# USER_LOGOUT
+@users_bp.route("/logout", methods=["POST"])
+def logout_user():
+    session.pop("user_id", None)
+    return jsonify({"message": "Logged out"}), 200
 
 
 # read
+# Get current loging in user
+@users_bp.route("/@me", methods=["GET"])
+def get_current_login_user():
+    print("we get into the current login user route here")
+    user_id = session.get("user_id")
+    print("user_id given by @me route: ", user_id)
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    current_user = sql_db.get_current_login_user_info(user_id)
+    if not current_user:
+        return jsonify({"error": "User not found"}), 404
+
+    return jsonify({"id": current_user["user_id"], "email": current_user["email"]})
+
+
 @users_bp.route("/", methods=["GET"])
 def get_user():
     id = request.args.get("id", type=int)

@@ -3,15 +3,35 @@ from api.users import users_bp
 from api.bots import bots_bp
 from api.parts import parts_bp
 from api.orders import orders_bp
+from flask_session import Session
+from api.extensions import bcrypt
 from flask_cors import CORS
+from dotenv import load_dotenv
+from api.config import ApplicationConfig
 
+# Create app
 app = Flask(__name__)
-CORS(app)
+app.config.from_object(ApplicationConfig)
+# Apply CORS before registering blueprints
+CORS(
+    app,
+    origins=["http://localhost:5173"],
+    supports_credentials=True
+)
+Session(app)
+bcrypt.init_app(app)
+
+CORS(users_bp, origins=["http://localhost:5173"], supports_credentials=True)
+CORS(bots_bp, origins=["http://localhost:5173"], supports_credentials=True)
+CORS(parts_bp, origins=["http://localhost:5173"], supports_credentials=True)
+CORS(orders_bp, origins=["http://localhost:5173"], supports_credentials=True)
 
 app.register_blueprint(users_bp, url_prefix="/users")
 app.register_blueprint(bots_bp, url_prefix="/custom_bots")
 app.register_blueprint(parts_bp, url_prefix="/parts")
 app.register_blueprint(orders_bp, url_prefix="/orders")
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)

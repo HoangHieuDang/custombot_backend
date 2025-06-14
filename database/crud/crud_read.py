@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from database.database_sql_struct import Users, RobotParts, CustomBots, CustomBotParts, Order
+from api.extensions import bcrypt
 
 
 def get_user(engine, **criteria):
@@ -58,6 +59,26 @@ def get_user(engine, **criteria):
         except Exception as e:
             print("Database query failed:", e)
             return False
+
+
+def get_login_user(engine, email, password):
+    with Session(engine) as db_session:
+        user = db_session.execute(select(Users).where(Users.email == email)).scalar_one_or_none()
+        print("USER_ID:", user.id)
+        print("PASSWORD PLAIN:", repr(password))
+        print("HASHED FROM DB:", repr(user.password))
+        print("CHECK RESULT:", bcrypt.check_password_hash(user.password, password))
+        if not user or not bcrypt.check_password_hash(user.password, password):
+            return None
+        return user.id
+
+
+def get_current_login_user_info(engine, user_id):
+    with Session(engine) as db_session:
+        user = db_session.execute(select(Users).where(Users.id == user_id)).scalar()
+        if not user:
+            return False
+        return {"user_id": user.id, "email": user.email}
 
 
 def get_custom_bot(engine, **criteria):
@@ -390,6 +411,7 @@ def get_parts_from_custom_bot(engine, custom_robot_id):
             print(f"Query failed: {e}")
             return False
 
+
 def get_part_type_sets(engine):
     """
     Fetch all unique part types from RobotParts,
@@ -424,4 +446,3 @@ def get_part_type_sets(engine):
         except Exception as e:
             print(f"Failed to fetch part type sets: {e}")
             return [], []
-
