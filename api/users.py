@@ -71,6 +71,7 @@ def get_current_login_user():
     if not current_user:
         return jsonify({"error": "User not found"}), 404
 
+    print("Session at login:", dict(session))
     return jsonify({"id": current_user["user_id"], "email": current_user["email"]})
 
 

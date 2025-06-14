@@ -1,6 +1,5 @@
 from dotenv import load_dotenv
 import os
-import redis
 
 load_dotenv()
 
@@ -8,6 +7,6 @@ class ApplicationConfig:
     SESSION_TYPE = "filesystem"
     SESSION_PERMANENT = False
     SESSION_USE_SIGNER = True
-    SESSION_COOKIE_SAMESITE = "Lax"  # or "None" if using HTTPS
-    SESSION_COOKIE_SECURE = False  # True if using HTTPS
-    SECRET_KEY = "your_secret_key"
+    SESSION_COOKIE_SAMESITE = "None"  # Use "None" only for HTTPS with Secure=True
+    SESSION_COOKIE_SECURE = False  # Set to True only on HTTPS
+    SECRET_KEY = os.environ["SECRET_KEY"]
