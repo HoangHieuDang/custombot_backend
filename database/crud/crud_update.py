@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func, and_
-from database.database_sql_struct import Users, RobotParts, CustomBots, CustomBotParts, Order
+from database.database_sql_struct import Users, RobotParts, CustomBots, CustomBotParts, Order, PartTypeMetadata
 from sqlalchemy.exc import SQLAlchemyError
 
 
@@ -332,3 +332,5 @@ def update_part_on_custom_bot(engine, custom_robot_id, new_part_id, direction, a
             session.rollback()
             print(f"Failed to update part: {e}")
             return False
+
+

@@ -23,10 +23,18 @@ class DatabaseInterface(ABC):
         pass
 
     @abstractmethod
+    def create_part_type_metadata(self, part_type, is_asym):
+        pass
+
+    @abstractmethod
     def add_order(self, orders_list):
         pass
 
     # Read Data
+    @abstractmethod
+    def get_all_part_type_metadata(self):
+        pass
+
     @abstractmethod
     def get_current_login_user_info(self, user_id):
         pass
@@ -52,15 +60,11 @@ class DatabaseInterface(ABC):
         pass
 
     @abstractmethod
-    def get_part_paginated(engine, page=1, page_size=10, exclude_ids=None, **criteria):
+    def get_part_paginated(self, page, page_size, exclude_ids, **criteria):
         pass
 
     @abstractmethod
     def get_parts_from_custom_bot(self, bot_id):
-        pass
-
-    @abstractmethod
-    def get_part_type_sets(self):
         pass
 
     # Update Data

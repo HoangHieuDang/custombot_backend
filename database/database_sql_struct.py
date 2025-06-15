@@ -8,6 +8,13 @@ class Base(DeclarativeBase):
     pass
 
 
+class PartTypeMetadata(Base):
+    __tablename__ = "part_type_metadata"
+    type: Mapped[str] = mapped_column(primary_key=True)
+    is_asymmetrical: Mapped[bool] = mapped_column(nullable=False) # When the part type is assigned with left or right
+    # it will be automatically upgraded to True and never go back to False
+
+
 class Users(Base):
     __tablename__ = "users"
     id: Mapped[int] = mapped_column(primary_key=True, unique=True)
@@ -64,7 +71,6 @@ class Order(Base):
     shipping_address: Mapped[str] = mapped_column(String, nullable=True)
     shipping_date: Mapped[DateTime] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[DateTime] = mapped_column(DateTime)
-
 
 '''
 #Run these lines of code 1 time to generate sqlite database

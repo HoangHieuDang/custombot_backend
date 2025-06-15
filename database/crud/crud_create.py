@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func, and_, or_
 from datetime import datetime
-from database.database_sql_struct import Users, RobotParts, CustomBots, CustomBotParts, Order
+from database.database_sql_struct import Users, RobotParts, CustomBots, CustomBotParts, Order, PartTypeMetadata
 
 
 def add_user(engine, users_list):
@@ -44,6 +44,7 @@ def add_user(engine, users_list):
 
     return True
 
+
 def add_part(engine, parts_list):
     '''
     parts_list is a list of part dicts.
@@ -82,6 +83,7 @@ def add_part(engine, parts_list):
                 if new_parts_list:
                     session.add_all(new_parts_list)
                     session.commit()
+                    # For each new part in parts_list, update the part type and direction type into part type metadata
                     print(f"Successfully added {len(new_parts_list)} parts.")
                     return True
                 else:
@@ -163,20 +165,17 @@ def create_custom_bot_for_user(engine, bots_list):
 
 def add_part_to_custom_bot(engine, part_id, custom_robot_id, amount, direction):
     """
-    Adds a robot part to a custom bot with specified direction ('left', 'right', 'center').
-
-    Only allows modification if the custom bot is still in 'in_progress' status.
 
     Args:
-        part_id (int): The ID of the robot part to be added.
-        custom_robot_id (int): The ID of the custom bot to which the part will be added.
-        amount (int): The quantity of the part to add (must be >= 1).
-        direction (str): The direction this part is assigned to ('left', 'right', or 'center').
+        engine:
+        part_id:
+        custom_robot_id:
+        amount:
+        direction:
 
     Returns:
-        bool: True if successful, False otherwise.
-    """
 
+    """
     # Validate direction
     if direction not in ("left", "right", "center"):
         print("Invalid direction. Must be 'left', 'right', or 'center'.")
@@ -188,13 +187,29 @@ def add_part_to_custom_bot(engine, part_id, custom_robot_id, amount, direction):
             print("Amount must be a positive integer >= 1.")
             return False
 
-        # Validate part
+        # Validate part and part metadata
         part = session.scalar(select(RobotParts).where(RobotParts.id == part_id))
         if not part:
             print(f"No part found with part_id {part_id}.")
             return False
 
-        # Validate custom bot
+        # Validate part type metadata exists, if not yet registered, the part type should be added there first
+        metadata = session.get(PartTypeMetadata, part.type)
+        if not metadata:
+            print(f"Part type '{part.type}' not registered in PartTypeMetadata. Please add it first.")
+            return False
+
+        # Enforce direction consistency with PartTypeMetadata
+        if metadata.is_asymmetrical:
+            if direction not in ("left", "right"):
+                print(f"Invalid direction '{direction}' for asymmetrical part type '{part.type}'.")
+                return False
+        else:
+            if direction != "center":
+                print(f"Invalid direction '{direction}' for symmetrical part type '{part.type}'.")
+                return False
+
+        # Validate bot
         bot = session.scalar(select(CustomBots).where(CustomBots.id == custom_robot_id))
         if not bot:
             print(f"No custom bot found with id {custom_robot_id}.")
@@ -205,10 +220,9 @@ def add_part_to_custom_bot(engine, part_id, custom_robot_id, amount, direction):
             return False
 
         try:
-            # Check if the part already exists at this direction
+            # Update or insert part to bot
             existing_entry = session.scalar(
-                select(CustomBotParts)
-                .where(
+                select(CustomBotParts).where(
                     CustomBotParts.robot_part_id == part_id,
                     CustomBotParts.custom_robot_id == custom_robot_id,
                     CustomBotParts.direction == direction
@@ -227,6 +241,22 @@ def add_part_to_custom_bot(engine, part_id, custom_robot_id, amount, direction):
                 ))
                 print(f"Added part_id {part_id} ({direction}) to bot_id {custom_robot_id}.")
 
+            # Ensure part_type metadata is up-to-date
+            part_type = part.type
+            metadata_entry = session.scalar(select(PartTypeMetadata).where(PartTypeMetadata.type == part_type))
+
+            if not metadata_entry:
+                # Insert new metadata entry
+                session.add(PartTypeMetadata(
+                    type=part_type,
+                    is_asymmetrical=(direction in ("left", "right"))
+                ))
+                print(f"Inserted new metadata for type '{part_type}' (asym={direction in ('left', 'right')}).")
+            else:
+                if not metadata_entry.is_asymmetrical and direction in ("left", "right"):
+                    metadata_entry.is_asymmetrical = True
+                    print(f"Updated metadata for type '{part_type}' to is_asymmetrical=True.")
+
             session.commit()
             return True
 
@@ -234,6 +264,24 @@ def add_part_to_custom_bot(engine, part_id, custom_robot_id, amount, direction):
             session.rollback()
             print(f"Failed to add part to custom bot: {e}")
             return False
+
+
+def create_part_type_metadata(engine, part_type, is_asym):
+    if part_type is None or is_asym is None:
+        raise ValueError("Both 'part_type' and 'is_asym' must be provided.")
+    if not isinstance(is_asym, bool):
+        raise TypeError("'is_asym' must be a boolean.")
+
+    with Session(engine) as session:
+        existing = session.get(PartTypeMetadata, part_type)
+        if existing:
+            if existing.is_asymmetrical != is_asym:
+                raise ValueError(f"Part type '{part_type}' already exists with is_asymmetrical={existing.is_asymmetrical}. Cannot overwrite.")
+            return "exists"
+        else:
+            session.add(PartTypeMetadata(type=part_type, is_asymmetrical=is_asym))
+            session.commit()
+            return "created"
 
 
 def add_order(engine, orders_list):

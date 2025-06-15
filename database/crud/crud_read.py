@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-from database.database_sql_struct import Users, RobotParts, CustomBots, CustomBotParts, Order
+from database.database_sql_struct import Users, RobotParts, CustomBots, CustomBotParts, Order, PartTypeMetadata
 from api.extensions import bcrypt
 
 
@@ -64,10 +64,10 @@ def get_user(engine, **criteria):
 def get_login_user(engine, email, password):
     with Session(engine) as db_session:
         user = db_session.execute(select(Users).where(Users.email == email)).scalar_one_or_none()
-        print("USER_ID:", user.id)
-        print("PASSWORD PLAIN:", repr(password))
-        print("HASHED FROM DB:", repr(user.password))
-        print("CHECK RESULT:", bcrypt.check_password_hash(user.password, password))
+        #print("USER_ID:", user.id)
+        #print("PASSWORD PLAIN:", repr(password))
+        #print("HASHED FROM DB:", repr(user.password))
+        #print("CHECK RESULT:", bcrypt.check_password_hash(user.password, password))
         if not user or not bcrypt.check_password_hash(user.password, password):
             return None
         return user.id
@@ -412,37 +412,7 @@ def get_parts_from_custom_bot(engine, custom_robot_id):
             return False
 
 
-def get_part_type_sets(engine):
-    """
-    Fetch all unique part types from RobotParts,
-    and identify which types are used asymmetrically (left/right).
-
-    Args:
-        engine: SQLAlchemy engine
-
-    Returns:
-        (set_of_all_types, set_of_asymmetrical_types)
-        Both are sorted lists of strings.
-    """
+def get_all_part_type_metadata(engine):
     with Session(engine) as session:
-        try:
-            # Fetch all distinct part types
-            all_type_query = select(RobotParts.type).distinct()
-            all_types = session.execute(all_type_query).all()
-            type_set = {str(row[0]) for row in all_types}
-
-            # Fetch part types where direction is left or right
-            asym_query = (
-                select(RobotParts.type, CustomBotParts.direction)
-                .join(CustomBotParts, CustomBotParts.robot_part_id == RobotParts.id)
-                .where(CustomBotParts.direction.in_(["left", "right"]))
-                .distinct()
-            )
-            asym_rows = session.execute(asym_query).all()
-            asymmetrical_set = {str(row[0]) for row in asym_rows}
-
-            return sorted(type_set), sorted(asymmetrical_set)
-
-        except Exception as e:
-            print(f"Failed to fetch part type sets: {e}")
-            return [], []
+        metadata = session.query(PartTypeMetadata).all()
+        return [{"type": m.type, "is_asymmetrical": m.is_asymmetrical} for m in metadata]

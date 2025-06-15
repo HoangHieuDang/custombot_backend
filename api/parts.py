@@ -81,16 +81,34 @@ def get_part():
     else:
         return jsonify(result), 200
 
-@parts_bp.route("/types", methods=["GET"])
-def get_possible_part_types():
+
+@parts_bp.route("/all_part_type_metadata", methods=["GET"])
+def get_all_part_type_metadata():
     try:
-        all_types, asymmetrical_types = sql_db.get_part_type_sets()
-        return jsonify({
-            "all_types": all_types,
-            "asymmetrical_types": asymmetrical_types
-        })
+        result = sql_db.get_all_part_type_metadata()
+        print("we are getting all part_type_metadata: ", result)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@parts_bp.route("/metadata", methods=["POST"])
+def add_or_update_part_type_metadata():
+    data = request.get_json()
+    part_type = data.get("type")
+    is_asym = data.get("is_asymmetrical")
+
+    try:
+        result = sql_db.create_part_type_metadata(part_type, is_asym)
+        if result == "exists":
+            return jsonify({"message": f"Part type '{part_type}' already registered."}), 200
+        elif result == "created":
+            return jsonify({"message": f"Part type '{part_type}' created successfully."}), 201
+    except (ValueError, TypeError) as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 # update
 @parts_bp.route("/", methods=["PUT"])
