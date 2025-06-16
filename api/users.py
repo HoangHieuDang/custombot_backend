@@ -36,17 +36,13 @@ def create_user():
 # USER_LOGIN
 @users_bp.route("/login", methods=["POST"])
 def login_user():
-    print("🔥 login route hit")
     email = request.json.get("email")
     password = request.json.get("password")
     logined_user = sql_db.get_login_user(email, password)
-    print("✅ Got user ID:", logined_user, type(logined_user))
     if not logined_user:
-        print("❌ Unauthorized branch hit")
+        print("Unauthorized branch hit")
         return jsonify({"error": "Unauthorized"}), 401
-    print("🎉 Login successful, setting session")
     session["user_id"] = int(logined_user)
-
     return jsonify({"id": logined_user, "email": email})
 
 
