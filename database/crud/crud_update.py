@@ -2,54 +2,40 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select, func, and_
 from database.database_sql_struct import Users, RobotParts, CustomBots, CustomBotParts, Order, PartTypeMetadata
 from sqlalchemy.exc import SQLAlchemyError
+from api.extensions import bcrypt
 
 
 def update_user(engine, user_id, **changes):
-    """
-        Updates user attributes in the database based on the provided changes.
-
-        Args:
-            user_id (int): The unique identifier of the user to update.
-            **changes (dict): A variable-length dictionary of key-value pairs representing
-                              the attributes to update and their new values. Only the following
-                              keys are allowed:
-                                - 'email': The new email address.
-                                - 'username': The new username.
-                                - 'password': The new password
-
-        Returns:
-            bool:
-                - True if the update was successful.
-                - False if an invalid attribute is provided or if an error occurs during the update.
-
-        Raises:
-            Exception: Any exceptions raised during the database transaction are caught and
-                       printed to help with debugging.
-
-        Example:
-            update_user(1, email="new@example.com", username="new_name", password="dffdfd")
-
-        Notes:
-            - The function uses SQLAlchemy ORM to query and update the user.
-            - Only the fields explicitly listed in `possible_changes` can be updated.
-            - The update is committed to the database only if all inputs are valid.
-        """
-    possible_changes = {"email", "username", "password"}
+    allowed_fields = {"email", "username", "password"}
     with Session(engine) as session:
-        for key_change, value in changes.items():
-            # if key_change is valid
-            if key_change in possible_changes:
-                try:
-                    user = session.execute(select(Users).filter_by(id=user_id)).scalar_one()
-                    setattr(user, key_change, value)
-                    session.commit()
-                except Exception as e:
-                    print("Sth went wrong while updating db: " + str(e))
-                    return False
-            else:
-                print("Invalid input attributes!")
-                return False
-    return True
+        try:
+            user = session.scalar(select(Users).where(Users.id == user_id))
+            if not user:
+                return {"success": False, "error": f"User {user_id} not found."}
+
+            for key, value in changes.items():
+                if key not in allowed_fields:
+                    return {"success": False, "error": f"Invalid field '{key}'."}
+
+                # Uniqueness checks
+                if key == "username":
+                    conflict = session.scalar(select(Users).where(Users.username == value, Users.id != user_id))
+                    if conflict:
+                        return {"success": False, "error": "Username already taken."}
+                if key == "email":
+                    conflict = session.scalar(select(Users).where(Users.email == value, Users.id != user_id))
+                    if conflict:
+                        return {"success": False, "error": "Email already in use."}
+                if key == "password":
+                     value = bcrypt.generate_password_hash(value).decode("utf-8")
+
+                setattr(user, key, value)
+
+            session.commit()
+            return {"success": True}
+        except Exception as e:
+            print(f"Error updating user {user_id}: {e}")
+            return {"success": False, "error": "Database error during update."}
 
 
 def update_custom_bot(engine, bot_id, **changes):
@@ -332,5 +318,3 @@ def update_part_on_custom_bot(engine, custom_robot_id, new_part_id, direction, a
             session.rollback()
             print(f"Failed to update part: {e}")
             return False
-
-

@@ -68,7 +68,10 @@ def get_current_login_user():
         return jsonify({"error": "User not found"}), 404
 
     print("Session at login:", dict(session))
-    return jsonify({"id": current_user["user_id"], "email": current_user["email"]})
+    return jsonify({"id": current_user["user_id"],
+                    "email": current_user["email"],
+                    "username": current_user["username"],
+                    "created_at": current_user["created_at"]})
 
 
 @users_bp.route("/", methods=["GET"])
@@ -99,23 +102,12 @@ def get_user():
 @users_bp.route("/<user_id>", methods=["PUT"])
 def update_user(user_id):
     updated_data = request.get_json()
-    new_username = updated_data.get("username")
-    new_password = updated_data.get("password")
-    new_email = updated_data.get("email")
-    updated_fields = dict()
+    result = sql_db.update_user(user_id, **updated_data)
 
-    if new_username:
-        updated_fields["username"] = new_username
-    if new_password:
-        updated_fields["password"] = new_password
-    if new_email:
-        updated_fields["email"] = new_email
-
-    update_result = sql_db.update_user(user_id, **updated_fields)
-    if update_result:
-        return jsonify({"message": f"User{user_id} updated"}), 201
+    if result["success"]:
+        return jsonify({"message": f"User {user_id} updated successfully."}), 201
     else:
-        return jsonify({"error": f"Can not update User{user_id}"}), 400
+        return jsonify({"error": result["error"]}), 400
 
 
 # delete

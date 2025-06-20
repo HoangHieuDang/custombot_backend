@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 from database.database_sql_struct import Users, RobotParts, CustomBots, CustomBotParts, Order, PartTypeMetadata
 from api.extensions import bcrypt
+from datetime import datetime
 
 
 def get_user(engine, **criteria):
@@ -64,10 +65,10 @@ def get_user(engine, **criteria):
 def get_login_user(engine, email, password):
     with Session(engine) as db_session:
         user = db_session.execute(select(Users).where(Users.email == email)).scalar_one_or_none()
-        #print("USER_ID:", user.id)
-        #print("PASSWORD PLAIN:", repr(password))
-        #print("HASHED FROM DB:", repr(user.password))
-        #print("CHECK RESULT:", bcrypt.check_password_hash(user.password, password))
+        # print("USER_ID:", user.id)
+        # print("PASSWORD PLAIN:", repr(password))
+        # print("HASHED FROM DB:", repr(user.password))
+        # print("CHECK RESULT:", bcrypt.check_password_hash(user.password, password))
         if not user or not bcrypt.check_password_hash(user.password, password):
             return None
         return user.id
@@ -78,7 +79,10 @@ def get_current_login_user_info(engine, user_id):
         user = db_session.execute(select(Users).where(Users.id == user_id)).scalar()
         if not user:
             return False
-        return {"user_id": user.id, "email": user.email}
+        return {"user_id": user.id,
+                "email": user.email,
+                "username": user.username,
+                "created_at": user.created_at if user.created_at else None}
 
 
 def get_custom_bot(engine, **criteria):
