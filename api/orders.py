@@ -14,7 +14,7 @@ def add_order():
     try:
         user_id = int(order.get("user_id"))
         custom_robot_id = int(order.get("custom_robot_id"))
-        quantity = float(order.get("quantity"))
+        quantity = int(order.get("quantity"))
         status = order.get("status")
         payment_method = order.get("payment_method")
         shipping_address = order.get("shipping_address")
@@ -22,8 +22,14 @@ def add_order():
     except (TypeError, ValueError):
         return jsonify({"error": "Invalid type for one or more fields"}), 400
 
-    if not all([user_id, custom_robot_id, quantity, status, payment_method, shipping_address, shipping_date]):
-        return jsonify({"error": "Missing required fields"}), 400
+    # Required for all orders
+    if not all([user_id, custom_robot_id, quantity, status]):
+        return jsonify({"error": "Missing required base fields"}), 400
+
+    # If the order is already "paid", make sure other fields are filled
+    if status == "paid":
+        if not all([payment_method, shipping_address, shipping_date]):
+            return jsonify({"error": "Missing payment or shipping info for 'paid' order"}), 400
 
     if status not in allowed_status:
         return jsonify({"error": f"status only accepts the following values: {allowed_status}"}), 400
