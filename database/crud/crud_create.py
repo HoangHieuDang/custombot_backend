@@ -276,7 +276,8 @@ def create_part_type_metadata(engine, part_type, is_asym):
         existing = session.get(PartTypeMetadata, part_type)
         if existing:
             if existing.is_asymmetrical != is_asym:
-                raise ValueError(f"Part type '{part_type}' already exists with is_asymmetrical={existing.is_asymmetrical}. Cannot overwrite.")
+                raise ValueError(
+                    f"Part type '{part_type}' already exists with is_asymmetrical={existing.is_asymmetrical}. Cannot overwrite.")
             return "exists"
         else:
             session.add(PartTypeMetadata(type=part_type, is_asymmetrical=is_asym))
@@ -338,23 +339,40 @@ def add_order(engine, orders_list):
 
                 total_price = quantity * bot_price
 
-                # Create order
-                new_order = Order(
-                    user_id=order['user_id'],
-                    custom_robot_id=order['custom_robot_id'],
-                    quantity=quantity,
-                    total_price=total_price,
-                    status=order.get('status', 'pending'),
-                    payment_method=order.get('payment_method'),
-                    shipping_address=order.get('shipping_address'),
-                    shipping_date=order.get('shipping_date'),
-                    created_at=datetime.now()
+                # Check if a pending order for this user and bot already exists
+                existing_order = session.scalar(
+                    select(Order).where(
+                        Order.user_id == order['user_id'],
+                        Order.custom_robot_id == order['custom_robot_id'],
+                        Order.status == "pending"
+                    )
                 )
 
-                session.add(new_order)
+                if existing_order:
+                    # Update the existing order
+                    existing_order.quantity += quantity
+                    existing_order.total_price += total_price
+                    existing_order.created_at = datetime.now()
+                    print(f"[Info] Updated existing pending order with ID {existing_order.id}")
+                else:
+                    # Create a new order
+                    new_order = Order(
+                        user_id=order['user_id'],
+                        custom_robot_id=order['custom_robot_id'],
+                        quantity=quantity,
+                        total_price=total_price,
+                        status=order.get('status', 'pending'),
+                        payment_method=order.get('payment_method'),
+                        shipping_address=order.get('shipping_address'),
+                        shipping_date=order.get('shipping_date'),
+                        created_at=datetime.now()
+                    )
+                    session.add(new_order)
+
+                # Mark bot as ordered
                 bot.status = "ordered"
                 session.commit()
-                print(f"[Success] Order added. Bot ID {bot.id} marked as 'ordered'.")
+                print(f"[Success] Order handled for bot ID {bot.id}.")
 
             except Exception as e:
                 print(f"[Error] Failed to add order: {e}")

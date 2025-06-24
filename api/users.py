@@ -80,7 +80,6 @@ def get_user():
     email = request.args.get("email")
     username = request.args.get("username")
     created_at = request.args.get("created_at")
-
     search_fields = {}
     if id:
         search_fields["id"] = id
@@ -90,9 +89,7 @@ def get_user():
         search_fields["username"] = username
     if created_at:
         search_fields["created_at"] = created_at  # assumed to be a valid string format
-
     result = sql_db.get_user(**search_fields)
-
     if result is False:
         return jsonify({"error": "Invalid search parameters or query error."}), 400
     return jsonify(result), 200
