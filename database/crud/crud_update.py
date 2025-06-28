@@ -27,7 +27,7 @@ def update_user(engine, user_id, **changes):
                     if conflict:
                         return {"success": False, "error": "Email already in use."}
                 if key == "password":
-                     value = bcrypt.generate_password_hash(value).decode("utf-8")
+                    value = bcrypt.generate_password_hash(value).decode("utf-8")
 
                 setattr(user, key, value)
 
@@ -182,19 +182,14 @@ def update_bot_part(engine, part_id, **changes):
 def update_order(engine, order_id, **changes):
     """
     Update attributes of an existing order.
-
-    Args:
-        order_id (int): ID of the order to update.
-        **changes: Key/value pairs of attributes to change. Allowed keys:
-            - 'quantity' (int > 0)
-            - 'status' (str: one of {"pending", "paid", "shipped", "cancelled"})
-            - 'shipping_address' (str)
-            - 'shipping_date' (str in 'YYYY-MM-DD' format or datetime.date)
-            - 'payment_method' (str)
+    Automatically recalculates total_price based on updated quantity.
 
     Returns:
         bool: True if update succeeded, False otherwise.
     """
+    from sqlalchemy import select
+    from datetime import datetime, date
+
     possible_status = {"pending", "paid", "shipped", "cancelled"}
     possible_changes = {"quantity", "status", "shipping_address", "shipping_date", "payment_method"}
 
@@ -214,16 +209,16 @@ def update_order(engine, order_id, **changes):
                     if not isinstance(value, int) or value <= 0:
                         print("Quantity must be a positive integer.")
                         return False
+                    order.quantity = value  # apply quantity first
 
-                if key == "status":
+                elif key == "status":
                     if value not in possible_status:
                         print(f"Invalid status '{value}'. Allowed: {possible_status}")
                         return False
+                    order.status = value
 
-                if key == "shipping_date":
-                    from datetime import datetime, date
+                elif key == "shipping_date":
                     if isinstance(value, str):
-                        # convert to datetime object
                         try:
                             value = datetime.strptime(value, "%Y-%m-%d").date()
                         except ValueError:
@@ -232,8 +227,27 @@ def update_order(engine, order_id, **changes):
                     elif not isinstance(value, date):
                         print("shipping_date must be a string or a date object.")
                         return False
+                    order.shipping_date = value
 
-                setattr(order, key, value)
+                elif key == "shipping_address":
+                    order.shipping_address = value
+
+                elif key == "payment_method":
+                    order.payment_method = value
+
+            # Recalculate total_price based on latest quantity
+            # Get custom bot price by summing up its parts
+            if "quantity" in changes:
+                parts_query = (
+                    select(RobotParts.price, CustomBotParts.robot_part_amount)
+                    .join(CustomBotParts, RobotParts.id == CustomBotParts.robot_part_id)
+                    .where(CustomBotParts.custom_robot_id == order.custom_robot_id)
+                )
+                part_rows = session.execute(parts_query).all()
+                custom_bot_price = sum(p.price * p.robot_part_amount for p in part_rows)
+
+                # Finally update total_price
+                order.total_price = order.quantity * custom_bot_price
 
             session.commit()
             print(f"Order {order_id} updated successfully.")

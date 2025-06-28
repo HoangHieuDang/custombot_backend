@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select, func
 from database.database_sql_struct import Users, RobotParts, CustomBots, CustomBotParts, Order, PartTypeMetadata
 from api.extensions import bcrypt
 from datetime import datetime
@@ -84,20 +84,7 @@ def get_current_login_user_info(engine, user_id):
                 "username": user.username,
                 "created_at": user.created_at if user.created_at else None}
 
-
 def get_custom_bot(engine, **criteria):
-    """
-    Fetches custom bots from the database based on search criteria.
-
-    Args:
-        engine: SQLAlchemy engine for DB connection.
-        **criteria: Filter keys such as id, user_id, name, status, created_at.
-
-    Returns:
-        - List of custom bot dictionaries if found.
-        - Empty list if no match.
-        - False if invalid filters or DB error occurs.
-    """
     possible_filters = {"id", "user_id", "name", "status", "created_at"}
 
     if not criteria:
@@ -107,7 +94,6 @@ def get_custom_bot(engine, **criteria):
     with Session(engine) as session:
         filter_conditions = []
 
-        # Validate and prepare filter conditions
         for attr, value in criteria.items():
             if attr in possible_filters:
                 try:
@@ -125,22 +111,34 @@ def get_custom_bot(engine, **criteria):
             return False
 
         try:
-            # Execute the query with combined AND conditions
             query = select(CustomBots).where(*filter_conditions)
-            result = session.scalars(query).all()
+            bots = session.scalars(query).all()
 
-            # Return list of bots if found, otherwise empty list
-            return [{
-                "id": bot.id,
-                "user_id": bot.user_id,
-                "name": bot.name,
-                "status": bot.status,
-                "created_at": bot.created_at
-            } for bot in result] if result else []
+            result_list = []
+            for bot in bots:
+                price_query = (
+                    select(func.sum(RobotParts.price * CustomBotParts.robot_part_amount))
+                    .select_from(CustomBotParts)
+                    .join(RobotParts, RobotParts.id == CustomBotParts.robot_part_id)
+                    .where(CustomBotParts.custom_robot_id == bot.id)
+                )
+                bot_price = session.scalar(price_query) or 0.0
+
+                result_list.append({
+                    "id": bot.id,
+                    "user_id": bot.user_id,
+                    "name": bot.name,
+                    "status": bot.status,
+                    "created_at": bot.created_at,
+                    "price": round(bot_price, 2)
+                })
+
+            return result_list
 
         except Exception as e:
             print("Database query failed:", e)
             return False
+
 
 
 def get_part_paginated(engine, page=1, page_size=10, exclude_ids=None, **criteria):
