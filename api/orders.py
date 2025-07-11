@@ -117,6 +117,7 @@ def get_order():
 # Update
 @orders_bp.route("/", methods=["PUT"])
 def update_order():
+    print("update_order route reached")
     data = request.get_json()
     # get order_id
     order_id = data.get("id")
@@ -124,7 +125,7 @@ def update_order():
     if not order_id:
         return jsonify({"error": "Missing order ID"}), 400
 
-    possible_status = {"pending", "paid", "shipped", "cancelled"}
+    possible_status = {"pending", "paid", "production", "shipping", "received", "cancelled"}
     possible_changes = {"quantity", "status", "shipping_address", "shipping_date", "payment_method"}
 
     changes = {}

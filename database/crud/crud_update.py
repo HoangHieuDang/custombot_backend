@@ -190,7 +190,7 @@ def update_order(engine, order_id, **changes):
     from sqlalchemy import select
     from datetime import datetime, date
 
-    possible_status = {"pending", "paid", "shipped", "cancelled"}
+    possible_status = {"pending", "paid", "production", "shipping", "received", "cancelled"}
     possible_changes = {"quantity", "status", "shipping_address", "shipping_date", "payment_method"}
 
     with Session(engine) as session:

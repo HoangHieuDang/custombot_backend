@@ -84,9 +84,9 @@ def get_current_login_user_info(engine, user_id):
                 "username": user.username,
                 "created_at": user.created_at if user.created_at else None}
 
+
 def get_custom_bot(engine, **criteria):
     possible_filters = {"id", "user_id", "name", "status", "created_at"}
-
     if not criteria:
         print("No search criteria provided!")
         return False
@@ -111,6 +111,7 @@ def get_custom_bot(engine, **criteria):
             return False
 
         try:
+
             query = select(CustomBots).where(*filter_conditions)
             bots = session.scalars(query).all()
 
@@ -138,7 +139,6 @@ def get_custom_bot(engine, **criteria):
         except Exception as e:
             print("Database query failed:", e)
             return False
-
 
 
 def get_part_paginated(engine, page=1, page_size=10, exclude_ids=None, **criteria):
