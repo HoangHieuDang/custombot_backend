@@ -14,7 +14,7 @@ app.config.from_object(ApplicationConfig)
 # Apply CORS before registering blueprints
 CORS(
     app,
-    origins=["http://127.0.0.1:5173"],
+    origins="*",
     supports_credentials=True,
     expose_headers=["Content-Type", "X-CSRFToken"],
     allow_headers=["Content-Type", "X-CSRFToken"])
