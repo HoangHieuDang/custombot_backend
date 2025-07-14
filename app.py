@@ -22,10 +22,15 @@ CORS(
 Session(app)
 bcrypt.init_app(app)
 
+@app.route("/test", methods=["GET"])
+def welcome():
+    return "Hello, test!"
+
 app.register_blueprint(users_bp, url_prefix="/users")
 app.register_blueprint(bots_bp, url_prefix="/custom_bots")
 app.register_blueprint(parts_bp, url_prefix="/parts")
 app.register_blueprint(orders_bp, url_prefix="/orders")
 
 if __name__ == "__main__":
-    app.run(debug=True, host="127.0.0.1")
+    #app.run(debug=True, host="127.0.0.1")
+    app.run()
