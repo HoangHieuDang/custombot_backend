@@ -43,7 +43,16 @@ def login_user():
         print("Unauthorized branch hit")
         return jsonify({"error": "Unauthorized"}), 401
     session["user_id"] = int(logined_user)
-    return jsonify({"id": logined_user, "email": email})
+
+    current_user = sql_db.get_current_login_user_info(int(logined_user))
+    if not current_user:
+        return jsonify({"error": "User not found"}), 404
+
+    return jsonify({"id": current_user["user_id"],
+                    "email": current_user["email"],
+                    "username": current_user["username"],
+                    "created_at": current_user["created_at"]})
+
 
 
 # USER_LOGOUT
