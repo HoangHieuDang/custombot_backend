@@ -1,7 +1,10 @@
+import os
+
 '''
 Handling database related tasks by
 defining methods from class DatabaseInterface
 '''
+
 from database.crud.crud_create import add_part, add_user, create_custom_bot_for_user, add_part_to_custom_bot, \
     create_part_type_metadata, add_order
 from database.crud.crud_read import get_user, get_custom_bot, get_part, get_order, get_parts_from_custom_bot, \
@@ -23,7 +26,7 @@ class SQLiteDataManager(DatabaseInterface):
                 drivername="sqlite",
                 database=db_file_name
             )
-            self._engine = create_engine(self._url_obj)
+            self._engine = create_engine(os.getenv("db_uri", self._url_obj))
         except Exception as err:
             print("Cannot initiate SQLiteDataManager" + str(err))
 
