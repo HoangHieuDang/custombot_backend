@@ -35,7 +35,8 @@ app.register_blueprint(users_bp, url_prefix="/users")
 app.register_blueprint(bots_bp, url_prefix="/custom_bots")
 app.register_blueprint(parts_bp, url_prefix="/parts")
 app.register_blueprint(orders_bp, url_prefix="/orders")
-
+"""
+# This code snippet only requires when initializing the database for production ONCE, it will delete the database when reinitialized again
 # add engine to the app config after both app and data_manager are initialized
 try:
     app.config['SQLALCHEMY_ENGINE'] = data_manager._engine
@@ -61,7 +62,7 @@ with app.app_context():
 
     print("Database initialized with body parts.")
 print("Database initialized with required tables.")
-
+"""
 if __name__ == "__main__":
     # app.run(debug=True, host="127.0.0.1")
     app.run()
