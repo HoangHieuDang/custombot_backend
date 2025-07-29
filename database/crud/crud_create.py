@@ -1,48 +1,59 @@
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import select, func, and_, or_
 from datetime import datetime
 from database.database_sql_struct import Users, RobotParts, CustomBots, CustomBotParts, Order, PartTypeMetadata
 
 
-def add_user(engine, users_list):
-    if not users_list or not isinstance(users_list, list):
-        print("users_list is empty or not a valid list!")
-        return False
+def add_user(engine, user):
+    if not isinstance(user, dict):
+        return False, {
+            "code": "invalid_format",
+            "message": "User data must be a dictionary."
+        }
 
-    with Session(engine) as session:
-        for user in users_list:
-            try:
-                if not all(k in user for k in ("username", "email", "password")):
-                    print(f"Missing fields in user data: {user}. Skipping.")
-                    continue
+    required_fields = ("username", "email", "password")
+    missing = [k for k in required_fields if not user.get(k)]
+    if missing:
+        return False, {
+            "code": "missing_fields",
+            "message": f"Missing required fields: {', '.join(missing)}."
+        }
 
-                # Check for duplicates
-                existing_user = session.execute(
-                    select(Users).where(
-                        or_(Users.username == user["username"], Users.email == user["email"])
+    try:
+        with Session(engine) as session:
+            existing_user = session.execute(
+                select(Users).where(
+                    or_(
+                        Users.username == user["username"],
+                        Users.email == user["email"].strip().lower()
                     )
-                ).scalar_one_or_none()
-
-                if existing_user:
-                    print(f"Username {user['username']} or email {user['email']} already exists. Skipping.")
-                    continue
-
-                new_user = Users(
-                    username=user["username"],
-                    email=user["email"].strip().lower(),
-                    password=user["password"],
-                    created_at=datetime.now()
                 )
+            ).scalar_one_or_none()
 
-                session.add(new_user)
-                session.commit()
-                print(f"User {user['username']} added successfully!")
+            if existing_user:
+                return False, {
+                    "code": "duplicate_user",
+                    "message": "Username or email already exists."
+                }
 
-            except Exception as e:
-                print(f"Cannot add user {user.get('username', 'unknown')}: {e}")
-                session.rollback()
+            new_user = Users(
+                username=user["username"],
+                email=user["email"].strip().lower(),
+                password=user["password"],
+                created_at=datetime.now()
+            )
 
-    return True
+            session.add(new_user)
+            session.commit()
+
+            return True, "User added successfully."
+
+    except SQLAlchemyError as e:
+        return False, {
+            "code": "db_error",
+            "message": f"Database error: {str(e)}"
+        }
 
 
 def add_part(engine, parts_list):

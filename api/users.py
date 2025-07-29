@@ -10,27 +10,41 @@ sql_db = db.SQLiteDataManager("./database/custom_bot_db")
 # USER_REGISTRATION
 @users_bp.route("/register", methods=["POST"])
 def create_user():
+    '''
+    If success return 201 and a {"message":<a string value>}
+    If failed return a {"code":<code_value>, "message":<a string value>}
+        available code_values and the corresponding api response values:
+            "missing_fields": 400,
+            "invalid_format": 400,
+            "duplicate_user": 409,
+            "db_error": 500
+    '''
     data = request.get_json()
-    username = data.get("username")
-    email = data.get("email")
-    password = data.get("password")
 
-    if not all([username, email, password]):
-        return jsonify({"error": "Missing required fields."}), 400
+    hashed_password = None
+    if data.get("password"):
+        hashed_password = bcrypt.generate_password_hash(data["password"]).decode("utf-8")
 
-    hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
-
-    new_user = [{
-        "username": username,
-        "email": email.strip().lower(),
+    new_user = {
+        "username": data.get("username"),
+        "email": data.get("email"),
         "password": hashed_password
-    }]
+    }
 
-    success = sql_db.add_user(new_user)
+    success, result = sql_db.add_user(new_user)
+
+    status_code_map = {
+        "missing_fields": 400,
+        "invalid_format": 400,
+        "duplicate_user": 409,
+        "db_error": 500
+    }
+
     if success:
-        return jsonify({"message": "User created successfully."}), 201
+        return jsonify({"message": result}), 201
     else:
-        return jsonify({"error": "User creation failed. Username or email may already exist."}), 400
+        return jsonify(result), status_code_map.get(result.get("code"), 400) #return the res code according to status_code_map, else just 400
+
 
 
 # USER_LOGIN
