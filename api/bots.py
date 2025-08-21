@@ -165,3 +165,17 @@ def delete_part_from_custom_bot(bot_id, part_id):
         return jsonify({
             "error": f"Cannot delete part {part_id} ({direction}) from custom bot {bot_id}"
         }), 400
+
+@bots_bp.route("/del_bot/<int:user_id>/<int:bot_id>", methods=["DELETE"])
+def delete_custom_bot(user_id, bot_id):
+    success = sql_db.delete_custom_bot_from_user(user_id, bot_id)
+    if success:
+        return jsonify({
+            "message":f"Custom bot {bot_id} has been deleted from {user_id}"
+        }), 204
+    else:
+        return jsonify({
+            "error": f"Cannot delete custombot {bot_id} from user ({user_id})"
+        }), 400
+
+
