@@ -15,10 +15,10 @@ def create_custom_bot():
     if not user_id or not name:
         return jsonify({"error": "Missing required fields: 'user_id' and 'name'"}), 400
 
-    success, message = sql_db.create_custom_bot_for_user([{"user_id": user_id, "name": name}])
+    success, message, ids = sql_db.create_custom_bot_for_user([{"user_id": user_id, "name": name}])
 
     if success:
-        return jsonify({"message": message}), 201
+        return jsonify({"message": message, "ids":ids}), 201
     else:
         return jsonify({"error": message}), 400
 

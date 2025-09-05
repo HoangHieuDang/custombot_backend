@@ -120,12 +120,13 @@ def create_custom_bot_for_user(engine, bots_list):
             - 'name' (str): Name of the custom bot.
 
     Returns:
-        tuple: (success, message)
+        tuple: (success, message, ids)
             - success (bool): True if at least one bot was successfully added, False otherwise.
             - message (str): Detailed outcome or error message.
+            - ids (list): List of IDs for the newly created bots (empty if none created or on failure).
     '''
     if not bots_list or not isinstance(bots_list, list):
-        return False, "Empty bots_list or invalid data format."
+        return False, "Empty bots_list or invalid data format.", []
 
     with Session(engine) as session:
         new_bots_list = []
@@ -149,7 +150,7 @@ def create_custom_bot_for_user(engine, bots_list):
                 )
             )
             if existing_bot:
-                return False, f"Bot name '{bot['name']}' already exists for user_id {bot['user_id']}"
+                return False, f"Bot name '{bot['name']}' already exists for user_id {bot['user_id']}", []
 
             try:
                 new_bot = CustomBots(
@@ -160,18 +161,19 @@ def create_custom_bot_for_user(engine, bots_list):
                 )
                 new_bots_list.append(new_bot)
             except Exception as e:
-                return False, f"Error creating CustomBot object: {e}"
+                return False, f"Error creating CustomBot object: {e}", []
 
         if new_bots_list:
             try:
                 session.add_all(new_bots_list)
                 session.commit()
-                return True, f"Successfully added {len(new_bots_list)} custom bot(s)."
+                ids = [bot.id for bot in new_bots_list]
+                return True, f"Successfully added {len(new_bots_list)} custom bot(s).", ids
             except Exception as e:
                 session.rollback()
-                return False, f"Database commit failed: {e}"
+                return False, f"Database commit failed: {e}", []
         else:
-            return False, "No valid bots to add."
+            return False, "No valid bots to add.", []
 
 
 def add_part_to_custom_bot(engine, part_id, custom_robot_id, amount, direction):
