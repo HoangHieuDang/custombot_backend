@@ -23,7 +23,7 @@ CORS(
     expose_headers=["Content-Type", "X-CSRFToken"],
     allow_headers=["Content-Type", "X-CSRFToken"])
 
-Session(app)
+#Session(app)
 bcrypt.init_app(app)
 
 
